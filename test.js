@@ -1,4 +1,5 @@
 var compile = require('./compile').compile;
+var parser = require('./parser')
 
 var melody_mus = 
     { tag: 'par',
@@ -17,3 +18,11 @@ var melody_mus =
 
 console.log(melody_mus);
 console.log(compile(melody_mus));
+
+//test parser
+console.log('test mus parser');
+var fs = require('fs');
+var mus = parser.parse(fs.readFileSync('./test.mus','utf8'));
+console.log(mus);
+var compiled = compile(mus.expr,mus.definitions);
+console.log('compiled',compiled);

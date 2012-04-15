@@ -14,32 +14,59 @@ var convertPitch = function(pitch) {
 	return 12 + (12 * octave) + pitchNum;
 };
 
-var c = function(expr,start,out) {
+var cNote = function(note,start) {
+	return {
+		tag:'note',
+		pitch: convertPitch(note.pitch),
+		start: start,
+		dur: note.dur
+	};
+};
+
+var d = function(defs) {
+	var out = {};
+	for (var i = 0; i < defs.length; i++) {
+		var cur = defs[i];
+		out[cur.name] = cur.expr;
+	};
+	return out;
+}
+var c = function(expr,definitions,start,out) {
+	var top = out===undefined;
+	out = out||[];
+	var newtime = start;
 	switch(expr.tag) {
 		case 'note': 
-			out.push({tag:'note',pitch:convertPitch(expr.pitch),start:start,dur:expr.dur});
-			return start+expr.dur;
+			out.push(cNote(expr,start));
+			newtime = start+expr.dur;
+			break;
 		case 'rest':
 			out.push({tag:'rest',start:start,dur:expr.duration});
-			return start+expr.duration;
+			newtime = start+expr.duration;
+			break;
 		case 'seq':
-			return c(expr.right,(c(expr.left,start,out)),out);
+			newtime = c(expr.right,definitions,(c(expr.left,definitions,start,out)),out);
+			break;
 		case 'par':
-			var e1 = c(expr.left,start,out);
-			var e2 = c(expr.right,start,out);
-			return e1>e2 ? e1 : e2;
+			var e1 = c(expr.left,definitions,start,out);
+			var e2 = c(expr.right,definitions,start,out);
+			newtime = e1>e2 ? e1 : e2;
+			break;
 		case 'repeat':
-			var s = start;
 			for (var i = 0; i < expr.count; i++) {
-				s = c(expr.section,s,out); 
+				newtime = c(expr.section,definitions,newtime,out); 
 			};
-			return s;
+			break;
+		case 'ref':
+			newtime = c(definitions[expr.name],definitions,start,out);
+			break;
 	}
+	if(top===true) {return out;}
+	return newtime;
 };
-var compile = function(musexpr) {
-	var out = [];
-	c(musexpr,0,out);
-	return out;
+
+var compile = function(musexpr,definitions) {
+	return c(musexpr, d(definitions||[]), 0);
 };
 
 module.exports.compile = compile;
