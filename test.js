@@ -10,7 +10,10 @@ var melody_mus =
       right:
        { tag: 'seq',
          left: { tag: 'note', pitch: 'c4', dur: 500 },
-         right: { tag: 'note', pitch: 'd4', dur: 500 } } };
+         right: { tag: 'repeat',
+  section: { tag: 'note', pitch: 'b4', dur: 250 },
+  count: 3 } }};
+         // right: { tag: 'note', pitch: 'd4', dur: 500 } } };
 
 console.log(melody_mus);
 console.log(compile(melody_mus));

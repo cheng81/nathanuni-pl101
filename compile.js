@@ -20,7 +20,7 @@ var c = function(expr,start,out) {
 			out.push({tag:'note',pitch:convertPitch(expr.pitch),start:start,dur:expr.dur});
 			return start+expr.dur;
 		case 'rest':
-			out.push({tag:'rest',dur:expr.duration});
+			out.push({tag:'rest',start:start,dur:expr.duration});
 			return start+expr.duration;
 		case 'seq':
 			return c(expr.right,(c(expr.left,start,out)),out);
@@ -28,6 +28,12 @@ var c = function(expr,start,out) {
 			var e1 = c(expr.left,start,out);
 			var e2 = c(expr.right,start,out);
 			return e1>e2 ? e1 : e2;
+		case 'repeat':
+			var s = start;
+			for (var i = 0; i < expr.count; i++) {
+				s = c(expr.section,s,out); 
+			};
+			return s;
 	}
 };
 var compile = function(musexpr) {
