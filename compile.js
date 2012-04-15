@@ -30,7 +30,7 @@ var d = function(defs) {
 		out[cur.name] = cur.expr;
 	};
 	return out;
-}
+};
 var c = function(expr,definitions,start,out) {
 	var top = out===undefined;
 	out = out||[];
@@ -48,9 +48,7 @@ var c = function(expr,definitions,start,out) {
 			newtime = c(expr.right,definitions,(c(expr.left,definitions,start,out)),out);
 			break;
 		case 'par':
-			var e1 = c(expr.left,definitions,start,out);
-			var e2 = c(expr.right,definitions,start,out);
-			newtime = e1>e2 ? e1 : e2;
+			newtime = Math.max( c(expr.left,definitions,start,out),c(expr.right,definitions,start,out) );
 			break;
 		case 'repeat':
 			for (var i = 0; i < expr.count; i++) {
