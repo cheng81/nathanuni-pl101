@@ -126,7 +126,7 @@ module.exports = (function(){
           pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(defs, s) { return {definitions:defs,expr:s} })(result1[0], result1[2])
+          ? (function(s) { return {definitions:definitions,expr:s} })(result1[2])
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -221,7 +221,7 @@ module.exports = (function(){
           pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(name, e) { return {name:name,expr:e} })(result1[2], result1[4])
+          ? (function(name, e) { definitions[name] = e; })(result1[2], result1[4])
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -1501,6 +1501,10 @@ module.exports = (function(){
       }
       
       
+      
+		var definitions = {};
+      
+	
       
       var result = parseFunctions[startRule]();
       

@@ -1,11 +1,13 @@
-
+{
+	var definitions = {};
+}
 song =
-	defs:def* _ s:expr
-	{ return {definitions:defs,expr:s} }
+	def* _ s:expr
+	{ return {definitions:definitions,expr:s} }
 
 def =
 	'(' _ name:id _ e:expr _ ')' _
-	{ return {name:name,expr:e} }
+	{ definitions[name] = e; }
 
 expr =
 	'(' _ t:type _ l:expr _ r:expr _ ')' _

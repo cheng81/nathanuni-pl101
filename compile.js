@@ -23,14 +23,6 @@ var cNote = function(note,start) {
 	};
 };
 
-var d = function(defs) {
-	var out = {};
-	for (var i = 0; i < defs.length; i++) {
-		var cur = defs[i];
-		out[cur.name] = cur.expr;
-	};
-	return out;
-};
 var c = function(expr,definitions,start,out) {
 	var top = out===undefined;
 	out = out||[];
@@ -64,7 +56,7 @@ var c = function(expr,definitions,start,out) {
 };
 
 var compile = function(musexpr,definitions) {
-	return c(musexpr, d(definitions||[]), 0);
+	return c(musexpr, definitions, 0);
 };
 
 module.exports.compile = compile;
