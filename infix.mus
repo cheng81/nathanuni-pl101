@@ -1,0 +1,5 @@
+let intro = 2 * c4 100 | d4 75 , g1 25
+let bla = 2 * ((a4 100 , a5 200) | _ 50, b4 250)
+let introbla = intro | bla
+
+introbla , c1 200 , (bla | 3 * g6 180 , c1 200)

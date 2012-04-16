@@ -1,5 +1,6 @@
 var compile = require('./compile').compile;
 var parser = require('./parser')
+var iparser = require('./infix')
 
 var melody_mus = 
     { tag: 'par',
@@ -26,3 +27,8 @@ var mus = parser.parse(fs.readFileSync('./test.mus','utf8'));
 console.log(mus);
 var compiled = compile(mus.expr,mus.definitions);
 console.log('compiled',compiled);
+
+var imus = iparser.parse(fs.readFileSync('./infix.mus','utf8'));
+console.log(imus);
+var icompiled = compile(imus.expr,imus.definitions);
+console.log('compiled',icompiled);

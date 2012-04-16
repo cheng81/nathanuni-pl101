@@ -1,5 +1,6 @@
 var convertPitch = function(pitch) {
-	var octave = parseInt(pitch[1],10);
+	var sharp = pitch.length===3;
+	var octave = sharp ? parseInt(pitch[2],10) : parseInt(pitch[1],10);
 	var p0 = pitch[0].toUpperCase();
 	var pitchNum =
 		p0==='A' ? 9 :
@@ -11,13 +12,13 @@ var convertPitch = function(pitch) {
 		p0==='G' ? 7 : -1;
 
 	if(pitchNum<0) {throw new Error('Wrong pitch',pitch);}
-	return 12 + (12 * octave) + pitchNum;
+	return 12 + 12 * (octave + (sharp ? 1 : 0)) + pitchNum;
 };
 
 var cNote = function(note,start) {
 	return {
-		tag:'note',
-		pitch: convertPitch(note.pitch),
+		pitch: note.pitch,
+		// pitch: convertPitch(note.pitch),
 		start: start,
 		dur: note.dur
 	};
@@ -33,7 +34,6 @@ var c = function(expr,definitions,start,out) {
 			newtime = start+expr.dur;
 			break;
 		case 'rest':
-			out.push({tag:'rest',start:start,dur:expr.duration});
 			newtime = start+expr.duration;
 			break;
 		case 'seq':
@@ -50,13 +50,35 @@ var c = function(expr,definitions,start,out) {
 		case 'ref':
 			newtime = c(definitions[expr.name],definitions,start,out);
 			break;
+		default:
+			throw new Error('Unknown tag ' + expr.tag);
 	}
 	if(top===true) {return out;}
 	return newtime;
 };
 
+var nonRecur = function(name,expr) {
+	switch(expr.tag) {
+		case 'note':
+		case 'rest': return true;
+		case 'seq':
+		case 'par': nonRecur(name,expr.left); nonRecur(name,expr.right); return true;
+		case 'repeat': nonRecur(name,expr.section); return true;
+		case 'ref': if(expr.name==name) {throw new Error('Recursive "'+name+'" definition!');} else {return true;}
+	}
+}
+var sanity = function(defs) {
+	for(var i in defs) {
+		if(defs.hasOwnProperty(i)) {
+			nonRecur(i,defs[i]);
+		}
+	}
+}
 var compile = function(musexpr,definitions) {
-	return c(musexpr, definitions, 0);
+	sanity(definitions);
+	var out = c(musexpr, definitions, 0);
+	out.sort(function(a,b) {return a.start - b.start;});
+	return out;
 };
 
 module.exports.compile = compile;

@@ -14,7 +14,7 @@ expr =
 	{ return {tag:t,left:l,right:r} }
 	/ '(' _ p:pitch _ d:integer _ ')' _
 	{ return {tag:'note', pitch:p, dur:d} }
-	/ '(' _ 'rest' _ d:integer _ ')' _
+	/ '(' _ ('rest'/'_') _ d:integer _ ')' _
 	{ return {tag:'rest', duration:d } }
 	/ '(' _ ('repeat'/'*') _ n:integer _ e:expr _ ')' _
 	{ return {tag:'repeat',count:n,section:e }}
@@ -26,7 +26,7 @@ type =
 	/ ('par'/'|') {return 'par'}
 
 pitch =
-	fst:[A-Ga-g] snd:[0-8] {return fst+snd}
+	fst:[A-Ga-g] sharp:'#'? snd:[0-8] {return fst+sharp+snd}
 
 _ = 
 	space* (comment _)?
