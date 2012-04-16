@@ -33,6 +33,7 @@ A `.mus` file can start with a bunch of definitions, which can be later on refer
 
 Notes are the pitch and the duration. 'Rest' are like notes, but instead of the pitch use an underscore (e.g. `_ 100`).
 You can put stuff in sequence using a comma, e.g. `c1 100, b2 200`. The pipe is used to put stuff in paralled, e.g. `c1 100 | b2 200`. Keep in mind that the parser looks first for parallel expressions.
+To repeat an expression, use `<count> * <expr>`. You can also enclose an expression in parenthesis, to override the default precedence rules: `( c1 100 | c2 100 ) , a1 100` will play in paralles `c1` and `c2`, followed by `a1`.
 
 ## MUS Playground
 
