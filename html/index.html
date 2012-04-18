@@ -38,6 +38,31 @@
 			}
 
 			return false;
+		});
+		$('#sort').click(function(e) {
+			// create unsorted array
+			var to_sort = []
+			  , count = $('#count').val();
+			while (count-- > 0) {
+			    to_sort.push(Math.random());
+			}
+			// sort and assign notes to array values
+			var sorted = to_sort.slice().sort(function (a, b) { return a - b; });
+			var note = 14
+			  , notes = {}
+			  , scale = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+			for (var i = 0, ilen = sorted.length; i < ilen; ++i) {
+			    note += 1;
+			    notes[sorted[i]] = scale[note % 7] + Math.floor(note / 7);
+			}
+			// sort again, but create list of comparisons as notes
+			var ms = [];
+			function note_sort(a, b) {
+			    ms.push('(' + notes[a] + ' ' + $('#dur').val() + ' | ' + notes[b] + ' ' + $('#dur').val() + ')');
+			    return a - b;
+			}
+			to_sort.sort(note_sort);
+			$('#src').val(ms.join(','));
 		})
 	});
 	</script>
@@ -50,4 +75,7 @@
 Save <input type="checkbox" id="save" value="save"/>
 <br/>
 <input type="button" id="play" value="Go!"/>
+<input type="button" id="sort" value="Write Sort Music!" />
+Count: <input type="text" id="count" value="30" />
+Duration: <input type="text" id="dur" value="20" />
 </html>
