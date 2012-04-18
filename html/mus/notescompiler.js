@@ -60,11 +60,7 @@ var compileTrack = function(notes) {
 		volume: 0,
 		duration: 1000
 	}));
-	events.push(MidiEvent.noteOff({
-		pitch:noteTable['C4'],
-		volume: 0,
-		duration: 1000
-	}));
+	/**/
 	return new MidiTrack( {
 		// tempo: 120,	//for some reason, setting the tempo breaks jasmid
 		events: events
