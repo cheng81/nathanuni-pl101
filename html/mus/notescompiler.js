@@ -29,6 +29,7 @@ var lowlevel = function(notes) {
 		out.push({on:false,pitch:pitch,time:note.start+note.dur});
 	};
 
+
 	//Sort all the on/off events on time
 	out.sort(function(a,b) {return a.time-b.time;});
 
@@ -52,6 +53,18 @@ var compileTrack = function(notes) {
 				MidiEvent.noteOff(note.pitch,note.delta);
 		events.push( event );
 	};
+
+	/*brutal hack*/
+	events.push(MidiEvent.noteOn({
+		pitch:noteTable['C4'],
+		volume: 0,
+		duration: 1000
+	}));
+	events.push(MidiEvent.noteOff({
+		pitch:noteTable['C4'],
+		volume: 0,
+		duration: 1000
+	}));
 	return new MidiTrack( {
 		// tempo: 120,	//for some reason, setting the tempo breaks jasmid
 		events: events

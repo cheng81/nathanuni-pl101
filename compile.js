@@ -17,6 +17,7 @@ var convertPitch = function(pitch) {
 
 var cNote = function(note,start) {
 	return {
+		tag: 'note',
 		pitch: note.pitch,
 		// pitch: convertPitch(note.pitch),
 		start: start,
