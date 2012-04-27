@@ -9,7 +9,7 @@ comment =
 	';;' (![\r\n] c:.)*
 
 expression =
-	list / atom / quote
+	_ e:(list / atom / quote) _ { return e }
 
 atom =
 	chars:validchar+
@@ -19,9 +19,9 @@ validchar =
 
 
 quote =
-	"'" _ e:expression
+	"'" e:expression
 	{ return ['quote',e]; }
 
 list =
-	'(' _ f:expression r:( _ e:expression {return e} )* _ ')' _
-	{ return [f].concat(r); }
+	'(' es:expression* ')'
+	{ return es; }
