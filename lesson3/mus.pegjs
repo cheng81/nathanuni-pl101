@@ -1,30 +1,19 @@
 {
-	var definitions = {};
-	var curdur = 0;
 }
 
 song =
-	_ def* _ e:expr
-	{ return {definitions:definitions,expr:e}; }
+	_ d:def* _ e:expr
+	{ return {definitions:d,expr:e}; }
 
 def = 
 	'let' _ name:id _ '=' _ e:expr
-	{ definitions[name] = e; }
+	{ return {name:name, section:e}; }
 
 note =
 	p:pitch _ dur:integer _
 	{ return {tag:'note',pitch:p,dur:dur}; }
-	/ p:pitch _
-	{ return {tag:'note',pitch:p,dur:curdur}; }
 
-expr = set
-
-set = 
-	defaults? _ p:par {return p;}
-
-defaults =
-	'd@' _ c:integer
-	{ curdur = c; }
+expr = par
 
 par = 
 	left:seq _ '|' _ right:par _

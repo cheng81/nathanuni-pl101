@@ -4,3 +4,9 @@
 [submodule "html/jsmidi"]
 	path = html/jsmidi
 	url = git@github.com:cheng81/jsmidi.git
+[submodule "lesson2/html/jsmidi"]
+	path = lesson2/html/jsmidi
+	url = git@github.com:cheng81/jsmidi.git
+[submodule "lesson2/html/jasmid"]
+	path = lesson2/html/jasmid
+	url = git@github.com:cheng81/jasmid.git

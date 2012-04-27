@@ -13,6 +13,7 @@ module.exports = (function(){
         "_": parse__,
         "comment": parse_comment,
         "def": parse_def,
+        "defaults": parse_defaults,
         "id": parse_id,
         "integer": parse_integer,
         "note": parse_note,
@@ -20,6 +21,7 @@ module.exports = (function(){
         "pitch": parse_pitch,
         "prim": parse_prim,
         "seq": parse_seq,
+        "set": parse_set,
         "song": parse_song,
         "space": parse_space
       };
@@ -114,7 +116,7 @@ module.exports = (function(){
           if (result4 !== null) {
             var result5 = parse__();
             if (result5 !== null) {
-              var result6 = parse_par();
+              var result6 = parse_set();
               if (result6 !== null) {
                 var result1 = [result3, result4, result5, result6];
               } else {
@@ -191,7 +193,7 @@ module.exports = (function(){
                 if (result7 !== null) {
                   var result8 = parse__();
                   if (result8 !== null) {
-                    var result9 = parse_par();
+                    var result9 = parse_set();
                     if (result9 !== null) {
                       var result1 = [result3, result4, result5, result6, result7, result8, result9];
                     } else {
@@ -250,21 +252,104 @@ module.exports = (function(){
         }
         
         
+        var savedPos2 = pos;
+        var savedPos3 = pos;
+        var result9 = parse_pitch();
+        if (result9 !== null) {
+          var result10 = parse__();
+          if (result10 !== null) {
+            var result11 = parse_integer();
+            if (result11 !== null) {
+              var result12 = parse__();
+              if (result12 !== null) {
+                var result7 = [result9, result10, result11, result12];
+              } else {
+                var result7 = null;
+                pos = savedPos3;
+              }
+            } else {
+              var result7 = null;
+              pos = savedPos3;
+            }
+          } else {
+            var result7 = null;
+            pos = savedPos3;
+          }
+        } else {
+          var result7 = null;
+          pos = savedPos3;
+        }
+        var result8 = result7 !== null
+          ? (function(p, dur) { return {tag:'note',pitch:p,dur:dur}; })(result7[0], result7[2])
+          : null;
+        if (result8 !== null) {
+          var result6 = result8;
+        } else {
+          var result6 = null;
+          pos = savedPos2;
+        }
+        if (result6 !== null) {
+          var result0 = result6;
+        } else {
+          var savedPos0 = pos;
+          var savedPos1 = pos;
+          var result4 = parse_pitch();
+          if (result4 !== null) {
+            var result5 = parse__();
+            if (result5 !== null) {
+              var result2 = [result4, result5];
+            } else {
+              var result2 = null;
+              pos = savedPos1;
+            }
+          } else {
+            var result2 = null;
+            pos = savedPos1;
+          }
+          var result3 = result2 !== null
+            ? (function(p) { return {tag:'note',pitch:p,dur:curdur}; })(result2[0])
+            : null;
+          if (result3 !== null) {
+            var result1 = result3;
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+          if (result1 !== null) {
+            var result0 = result1;
+          } else {
+            var result0 = null;;
+          };
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_set() {
+        var cacheKey = 'set@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
         var savedPos0 = pos;
         var savedPos1 = pos;
-        var result3 = parse_pitch();
+        var result6 = parse_defaults();
+        var result3 = result6 !== null ? result6 : '';
         if (result3 !== null) {
           var result4 = parse__();
           if (result4 !== null) {
-            var result5 = parse_integer();
+            var result5 = parse_par();
             if (result5 !== null) {
-              var result6 = parse__();
-              if (result6 !== null) {
-                var result1 = [result3, result4, result5, result6];
-              } else {
-                var result1 = null;
-                pos = savedPos1;
-              }
+              var result1 = [result3, result4, result5];
             } else {
               var result1 = null;
               pos = savedPos1;
@@ -278,7 +363,64 @@ module.exports = (function(){
           pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(p, dur) { return {tag:'note',pitch:p,dur:dur}; })(result1[0], result1[2])
+          ? (function(p) {return p;})(result1[2])
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_defaults() {
+        var cacheKey = 'defaults@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var savedPos1 = pos;
+        if (input.substr(pos, 2) === "d@") {
+          var result3 = "d@";
+          pos += 2;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("\"d@\"");
+          }
+        }
+        if (result3 !== null) {
+          var result4 = parse__();
+          if (result4 !== null) {
+            var result5 = parse_integer();
+            if (result5 !== null) {
+              var result1 = [result3, result4, result5];
+            } else {
+              var result1 = null;
+              pos = savedPos1;
+            }
+          } else {
+            var result1 = null;
+            pos = savedPos1;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos1;
+        }
+        var result2 = result1 !== null
+          ? (function(c) { curdur = c; })(result1[2])
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -567,7 +709,7 @@ module.exports = (function(){
               if (result12 !== null) {
                 var result13 = parse__();
                 if (result13 !== null) {
-                  var result14 = parse_par();
+                  var result14 = parse_set();
                   if (result14 !== null) {
                     var result15 = parse__();
                     if (result15 !== null) {
@@ -638,7 +780,7 @@ module.exports = (function(){
                     if (result6 !== null) {
                       var result7 = parse__();
                       if (result7 !== null) {
-                        var result8 = parse_par();
+                        var result8 = parse_set();
                         if (result8 !== null) {
                           var result2 = [result4, result5, result6, result7, result8];
                         } else {
@@ -1366,6 +1508,8 @@ module.exports = (function(){
       
       
 		var definitions = {};
+      
+		var curdur = 0;
       
 	
       
