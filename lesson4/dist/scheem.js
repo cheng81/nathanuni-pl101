@@ -959,7 +959,7 @@ var evalScheem = function (expr, env) {
         case 'cons':
             chk.len(3);
             var arr = evalScheem(expr[2], env);
-            chk.array(arr);
+            chk.arr(arr);
             return [evalScheem(expr[1], env)]
                 .concat(arr);
         case 'car':
@@ -973,8 +973,16 @@ var evalScheem = function (expr, env) {
             chk.arr(arr);
             return arr.splice(1);
         case 'define':
-        case 'set!':
             chk.len(3);
+            if(env[expr[1]] !== undefined) {
+                throw new Error(expr[1] + ' already defined');
+            }
+            env[expr[1]] = evalScheem(expr[2], env);
+            return 0;
+        case 'set!':
+            if(env[expr[1]] === undefined) {
+                throw new Error('Undefined '+expr[1]+' variable');
+            }
             env[expr[1]] = evalScheem(expr[2], env);
             return 0;
         case 'begin':
