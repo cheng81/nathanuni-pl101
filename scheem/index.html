@@ -4,12 +4,33 @@
 <link rel="stylesheet" href="../css/codemirror.css"/>
 <link rel="stylesheet" href="../css/monokai.css"/>
 <style type="text/css">
+	body {
+	  font-family: Droid Sans, Arial, sans-serif;
+	  line-height: 1.5;
+	  margin: 3em auto;
+	  padding: 0 1em;
+	}
+
+	h1 {
+	  letter-spacing: -3px;
+	  font-size: 3.23em;
+	  font-weight: bold;
+	  margin: 0;
+	}
 	input#submit {
 		width: 100%;
-		border: solid 1px #efefef;
+		border: solid 2px #000;
+		margin: 0;
+		padding: 0;
+		font-variant: small-caps;
+		font-weight: bold;
+	}
+	div#result {
+		margin-top: 1em;
 	}
 </style>
 <script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson4/dist/scheem.js"></script>
+
 <script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="../js/codemirror.js"></script>
 <script type="text/javascript" src="../js/scheme.js"></script>
@@ -28,26 +49,33 @@ $(document).ready(function() {
 	$('input#submit').click(function(e) {
 		e.preventDefault();
 		var out = scheem.make(myCodeMirror.getValue());
+		var html = '';
 		if(out.result) {
 			console.log('ast',out.ast);
 			console.log('result',out.result);
-			$(outDiv).html(
+			$(outDiv).hide();
+			html = 
 				'ast: ' + JSON.stringify(out.ast) +
 				'<br/>' +
-				'result: ' + JSON.stringify(out.result)
-			);
+				'result: ' + JSON.stringify(out.result);
+			
 		} else {
 			console.log('error!',out.error);
-			$(outDiv).html(
-				out.error.name + ': ' + out.error.message
-				);
+			html =
+				out.error.name + ': ' + out.error.message;
 		}
+
+		$(outDiv).hide('slow',function() {
+			$(outDiv).html(html);
+			$(outDiv).show('fast');
+		})
 		return false;
 	});
 });
 </script>
 </head>
 <body>
+<h1>Scheem live</h1>
 <div id="container">
 	<textarea id="source">
 ;; some scheem source
