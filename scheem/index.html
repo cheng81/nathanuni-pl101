@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>Scheem playground</title>
+<link rel="stylesheet" href="../css/codemirror.css"/>
+<link rel="stylesheet" href="../css/monokai.css"/>
+<style type="text/css">
+	input#submit {
+		width: 100%;
+		border: solid 1px #efefef;
+	}
+</style>
+<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson4/dist/scheem.js"></script>
+<script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="../js/codemirror.js"></script>
+<script type="text/javascript" src="../js/scheme.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+	var require = window.node2browser.require;
+	var scheem = require('scheem');
+
+	var srcArea = $('textarea#source')[0];
+	var myCodeMirror = CodeMirror.fromTextArea(srcArea, {
+		lineNumbers: true,
+		theme: 'monokai'
+	});
+
+	var outDiv = $('div#result');
+	$('input#submit').click(function(e) {
+		e.preventDefault();
+		var out = scheem.make(myCodeMirror.getValue());
+		if(out.result) {
+			console.log('ast',out.ast);
+			console.log('result',out.result);
+			$(outDiv).html(
+				'ast: ' + JSON.stringify(out.ast) +
+				'<br/>' +
+				'result: ' + JSON.stringify(out.result)
+			);
+		} else {
+			console.log('error!',out.error);
+			$(outDiv).html(
+				out.error.name + ': ' + out.error.message
+				);
+		}
+		return false;
+	});
+});
+</script>
+</head>
+<body>
+<div id="container">
+	<textarea id="source">
+;; some scheem source
+(+ 1 2)</textarea>
+	<input type="button" value="Run" id="submit"/>
+</div>
+<div id="result"></div>
+</body>
+</html>
