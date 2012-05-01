@@ -75,6 +75,7 @@ var evalScheem = function (expr, env) {
             return (evalScheem(expr[1], env)).splice(1);
         case 'define':
         case 'set!':
+            chk.len(2);
             env[expr[1]] = evalScheem(expr[2], env);
             return 0;
         case 'begin':
