@@ -905,13 +905,9 @@ var check = function(name,expr) {
                 throw new Error(name + ' expressions take '+expected+' parameters, but '+expr.length+' parameters were given');
             }
         },
-        quote: function(pos) {
-            var item = expr[pos];
-            if(!item instanceof Array) {
-                throw new Error('Expected quote in '+pos+'th position of a '+name+' expression, but a '+(typeof item)+' was found');
-            }
-            if('quote' !== item[0]) {
-                throw new Error('Expected quote in '+pos+'th position of a '+name+' expression, but a '+(item[0])+' was found');
+        arr: function(val) {
+            if(!(val instanceof Array)) {
+                throw new Error('List expected, but '+(typeof val)+' found');
             }
         }
     };
@@ -962,17 +958,20 @@ var evalScheem = function (expr, env) {
                 evalScheem(expr[3], env);
         case 'cons':
             chk.len(3);
-            chk.quote(2);
+            var arr = evalScheem(expr[2], env);
+            chk.array(arr);
             return [evalScheem(expr[1], env)]
-                .concat(evalScheem(expr[2], env));
+                .concat(arr);
         case 'car':
             chk.len(2);
-            chk.quote(1);
-            return (evalScheem(expr[1], env))[0];
+            var arr = evalScheem(expr[1], env);
+            chk.arr(arr);
+            return arr[0];
         case 'cdr':
             chk.len(2);
-            chk.quote(1);
-            return (evalScheem(expr[1], env)).splice(1);
+            var arr = evalScheem(expr[1], env);
+            chk.arr(arr);
+            return arr.splice(1);
         case 'define':
         case 'set!':
             chk.len(3);
