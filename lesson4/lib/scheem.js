@@ -1,9 +1,3 @@
-var checkLength = function(name,expected,expr) {
-    if(expr.length !== expected) {
-        
-    }
-};
-
 var check = function(name,expr) {
     return {
         len: function(expected) {
