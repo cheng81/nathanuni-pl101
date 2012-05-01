@@ -2,7 +2,7 @@ var check = function(name,expr) {
     return {
         len: function(expected) {
             if(expr.length !== expected) {
-                throw new Error('Expected a '+expected+' length for a '+name+' expression, but a '+expr.length+' was found');
+                throw new Error(name + ' expressions take '+expected+' parameters, but '+expr.length+' parameters were given');
             }
         },
         quote: function(pos) {
@@ -75,7 +75,7 @@ var evalScheem = function (expr, env) {
             return (evalScheem(expr[1], env)).splice(1);
         case 'define':
         case 'set!':
-            chk.len(2);
+            chk.len(3);
             env[expr[1]] = evalScheem(expr[2], env);
             return 0;
         case 'begin':
