@@ -25,11 +25,26 @@
 		font-variant: small-caps;
 		font-weight: bold;
 	}
-	div#result {
+/*	div#result {
 		margin-top: 1em;
+	}*/
+	div#examples {
+		display: none;
+	}
+
+	div#main {
+		float: left;
+		width: 70%;
+	}
+	div#result {
+		width: 25%;
+		float:left;
+		margin-left: 1em;
+		background-color: #efefef;
 	}
 </style>
-<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson4/dist/scheem.js"></script>
+<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>
+<!--<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>-->
 
 <script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="../js/codemirror.js"></script>
@@ -40,36 +55,35 @@ $(document).ready(function() {
 	var scheem = require('scheem');
 
 	var srcArea = $('textarea#source')[0];
+	var outDiv = $('div#result');
 	var myCodeMirror = CodeMirror.fromTextArea(srcArea, {
 		lineNumbers: true,
-		theme: 'monokai'
+		theme: 'monokai',
+		onChange: function() {
+			console.log('code mirror-onChange')
+			try {
+				var out = scheem.make(myCodeMirror.getValue());
+				var html = '';
+				if(out.result) {
+					html = JSON.stringify(out.result);
+				} else {
+					html = out.error.name + ':' + out.error.message;
+				}
+				$(outDiv).html(html);
+			} catch(e) {console.log(e);}
+		}
 	});
 
-	var outDiv = $('div#result');
-	$('input#submit').click(function(e) {
-		e.preventDefault();
-		var out = scheem.make(myCodeMirror.getValue());
-		var html = '';
-		if(out.result) {
-			console.log('ast',out.ast);
-			console.log('result',out.result);
-			$(outDiv).hide();
-			html = 
-				'ast: ' + JSON.stringify(out.ast) +
-				'<br/>' +
-				'result: ' + JSON.stringify(out.result);
-			
-		} else {
-			console.log('error!',out.error);
-			html =
-				out.error.name + ': ' + out.error.message;
-		}
 
-		$(outDiv).hide('slow',function() {
-			$(outDiv).html(html);
-			$(outDiv).show('fast');
-		})
-		return false;
+	var btns = $('p.examples-btn');
+	$('div#examples > div').each(function(idx,div) {
+		var theid = div.id;
+		$(btns).append('<input type="button" id="load-'+theid+'" value="'+theid+'"/>');
+		$('input#load-'+theid).click(function(e) {
+			e.preventDefault();
+			myCodeMirror.setValue($(div).text());
+			return false;
+		});
 	});
 });
 </script>
@@ -77,11 +91,46 @@ $(document).ready(function() {
 <body>
 <h1>Scheem live</h1>
 <div id="container">
+	<p class="examples-btn">
+	</p>
+	<div id="main">
 	<textarea id="source">
 ;; some scheem source
 (+ 1 2)</textarea>
-	<input type="button" value="Run" id="submit"/>
+	<!--<input type="button" value="Run" id="submit"/>-->
+	</div>
+	<div id="result">&nbsp;</div>
 </div>
-<div id="result"></div>
+
+<div id="examples">
+	<div id="map">(define empty
+  (lambda (lst)
+    (= #nil lst)))
+(define map 
+  (lambda (lst fn)
+    (begin
+     (if (empty lst) #nil (cons (fn (car lst)) (map (cdr lst) fn))))))
+;;(map '(1 2 3) (lambda (x) (+ x 1)))
+(map '(1 2 3) (+ 1))</div>
+	<div id="curry">(define plusser
+  (lambda (x y)
+    (+ x y)))
+(define plus5 (plusser 5))
+(define plus1 (plusser 1))
+(plus5 (plus1 3))</div>
+	<div id="fibonacci">(define fib
+  (lambda (x)
+    (if (= x 0) 1
+        (if (= x 1) 1
+            (+ (fib (- x 1)) (fib (- x 2)))))))
+(fib 5)</div>
+	<div id="lookup-env">(define lookup
+  (lambda (key dict)
+    (if (= key (car dict))
+        (car (cdr dict))
+        (lookup key (car (cdr (cdr dict)))))))
+
+(lookup 'foo '(bar 5 (foo 10)))</div>
+</div>
 </body>
 </html>
