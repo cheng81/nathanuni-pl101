@@ -1,6 +1,10 @@
-var assert = require('chai').assert;
-var expect = require('chai').expect;
-var evalScheem = require('../lib/scheem').evalScheem;
+var assert = require('chai').assert
+  , expect = require('chai').expect
+  , scheem = require('../lib')
+  , evalScheem = scheem.interpreter.evalScheem
+  , evalScheemStr = function(str,env) {
+    return evalScheem( scheem.parser.parse(str),env||{} );
+  };
 
 suite('quote', function() {
     test('a number', function() {
@@ -120,6 +124,18 @@ suite('if', function() {
             6
         );
     });
+    test('literal true branch', function() {
+        assert.deepEqual(
+            evalScheem(['if','#t',5,6],{}),
+            5
+        );
+    });
+    test('literal false branch', function() {
+        assert.deepEqual(
+            evalScheem(['if','#f',5,6],{}),
+            6
+        );
+    });
 });
 
 suite('list processing', function() {
@@ -170,4 +186,30 @@ suite('error checking', function() {
     });
 });
 
+suite('evalScheemStr', function() {
+    test('number', function() {
+        assert.deepEqual(
+            evalScheemStr("5"),
+            5
+        );
+    });
+    test('quoted list', function() {
+        assert.deepEqual(
+            evalScheemStr("'( 1 2 3)"),
+            [1,2,3]
+        );
+    });
+    test('arithmetic expression', function() {
+        assert.deepEqual(
+            evalScheemStr("(+ (* 1 2) (/ 6 3))"),
+            4
+        );
+    });
+    test('variable in list', function() {
+        assert.deepEqual(
+            evalScheemStr("(begin (define x 10) (define y '(x 2 3)) (car y))"),
+            10
+        );
+    });
+});
 

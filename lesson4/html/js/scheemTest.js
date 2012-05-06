@@ -166,6 +166,7 @@ var evalScheem = function (expr, env) {
         return expr;
     }
     if (typeof expr === 'string') {
+        if(expr==='#t' || expr==='#f') {return expr;}
         return env[expr];
     }
     // Look at head of list for operation
@@ -386,6 +387,18 @@ suite('if', function() {
     test('false branch', function() {
         assert.deepEqual(
             evalScheem(['if',['<',1,1],5,6], {}),
+            6
+        );
+    });
+    test('literal true branch', function() {
+        assert.deepEqual(
+            evalScheem(['if','#t',5,6],{}),
+            5
+        );
+    });
+    test('literal false branch', function() {
+        assert.deepEqual(
+            evalScheem(['if','#f',5,6],{}),
             6
         );
     });

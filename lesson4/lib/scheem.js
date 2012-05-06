@@ -18,6 +18,7 @@ var evalScheem = function (expr, env) {
         return expr;
     }
     if (typeof expr === 'string') {
+        if(expr==='#t' || expr==='#f') {return expr;}
         return env[expr];
     }
     // Look at head of list for operation
@@ -66,7 +67,7 @@ var evalScheem = function (expr, env) {
             chk.len(2);
             var arr = evalScheem(expr[1], env);
             chk.arr(arr);
-            return arr[0];
+            return evalScheem(arr[0],env);
         case 'cdr':
             chk.len(2);
             var arr = evalScheem(expr[1], env);
