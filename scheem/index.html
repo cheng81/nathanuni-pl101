@@ -43,8 +43,8 @@
 		background-color: #efefef;
 	}
 </style>
-<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>
-<!--<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>-->
+<!--<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>-->
+<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>
 
 <script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="../js/codemirror.js"></script>
@@ -56,11 +56,12 @@ $(document).ready(function() {
 
 	var srcArea = $('textarea#source')[0];
 	var outDiv = $('div#result');
+
+	var lastChange = -1;
 	var myCodeMirror = CodeMirror.fromTextArea(srcArea, {
 		lineNumbers: true,
 		theme: 'monokai',
 		onChange: function() {
-			console.log('code mirror-onChange')
 			try {
 				var out = scheem.make(myCodeMirror.getValue());
 				var html = '';
@@ -103,15 +104,16 @@ $(document).ready(function() {
 </div>
 
 <div id="examples">
-	<div id="map">(define empty
+	<div id="map">(define empty?
   (lambda (lst)
-    (= #nil lst)))
+    (=l '() lst)))
+
 (define map 
-  (lambda (lst fn)
+  (lambda (fn lst)
     (begin
-     (if (empty lst) #nil (cons (fn (car lst)) (map (cdr lst) fn))))))
-;;(map '(1 2 3) (lambda (x) (+ x 1)))
-(map '(1 2 3) (+ 1))</div>
+     (if (empty? lst) '() (cons (fn (car lst)) (map fn (cdr lst)))))))
+
+(map (+ 1) '(1 2 3))</div>
 	<div id="curry">(define plusser
   (lambda (x y)
     (+ x y)))
@@ -131,6 +133,17 @@ $(document).ready(function() {
         (lookup key (car (cdr (cdr dict)))))))
 
 (lookup 'foo '(bar 5 (foo 10)))</div>
+	<div id="fold">(define empty?
+  (lambda (x)
+    (=l x '())))
+
+(define fold
+  (lambda (fn accum lst)
+    (if (empty? lst)
+        accum
+        (fold fn (fn accum (car lst)) (cdr lst)))))
+
+(fold + 0 '(1 2 3 4))</div>
 </div>
 </body>
 </html>
