@@ -195,6 +195,53 @@ $(document).ready(function() {
 
 
 (append '(1 2) '(3 4 5))</div>
+	<div id="expr-eval">(defun empty? (lst) (=l lst '()))
+
+(defun fold (fn accum lst)
+	(match lst
+		( (cons x xs) (fold fn (fn accum x) xs) )
+		( _ accum )))
+
+(defun nth (idx lst) 
+	(match idx
+		( 0 (car lst) )
+		( n (nth (- n 1) (cdr lst)) )
+		))
+
+(defun lookup (k env)
+	(if (empty? env)
+			(error 'undef-val)
+			(if (= k (nth 0 env))
+				(nth 1 env)
+				(lookup k (nth 2 env)))))
+
+(defun define-env (env k v)
+	(list k v env))
+
+(defun eval (expr env)
+	(begin
+	(cond
+		( (int? expr) expr )
+		( (bool? expr) expr )
+		( (sym? expr) (lookup expr env) )
+		( else
+			(match (car expr)
+				( '+ (+ (eval (nth 1 expr) env) (eval (nth 2 expr) env)) )
+				( 'if (if (eval (nth 1 expr) env)
+					(eval (nth 2 expr) env)
+					(eval (nth 3 expr) env) ) )
+				( 'let (eval (nth 2 expr) (define-env env (nth 0 (nth 1 expr)) (nth 1 (nth 1 expr)))) )
+				( 'begin (fold (lambda (_res sub) (eval sub env)) 0 (cdr expr)))
+				( 'alert (alert (eval (nth 1 expr) env)) )
+				( _ (alert expr) )
+			) )
+		)))
+
+(eval
+'(begin
+	(let (x 1)
+	(+ x 2)))
+'())</div>
 </div>
 </body>
 </html>
