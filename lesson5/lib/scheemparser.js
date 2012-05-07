@@ -433,13 +433,13 @@ module.exports = (function(){
         }
         
         
-        if (input.substr(pos).match(/^[0-9a-zA-Z_?!+\-=@#$%^&*\/.]/) !== null) {
+        if (input.substr(pos).match(/^[0-9a-zA-Z_?!+\-=@#$%^&|*\/.]/) !== null) {
           var result0 = input.charAt(pos);
           pos++;
         } else {
           var result0 = null;
           if (reportMatchFailures) {
-            matchFailed("[0-9a-zA-Z_?!+\\-=@#$%^&*\\/.]");
+            matchFailed("[0-9a-zA-Z_?!+\\-=@#$%^&|*\\/.]");
           }
         }
         

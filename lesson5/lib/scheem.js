@@ -59,6 +59,21 @@ var stdlib = function() {
             }
         }
     }
+    var listEq = function(x,y) {
+        if(x.length !== y.length) {return false;}
+        for (var i = 0; i < x.length; i++) {
+            if(x[i] instanceof Array) {
+                if(y[i] instanceof Array) {
+                    if(!listEq(x[i],y[i])) {return false;}
+                } else {
+                    return false;
+                }
+            } else if(x[i] !== y[i]) {
+                return false;
+            }
+        };
+        return true;
+    }
 
     var bld = new EnvBuilder();
     bld
@@ -67,20 +82,25 @@ var stdlib = function() {
     .add('*',pair(function(x,y) {return x*y;}))
     .add('/',pair(function(x,y) {return x/y;}))
     .add('=',pair(function(x,y) {return x===y ? '#t':'#f';}))
+    .add('=l',pair(function(x,y) {
+        if(!(x instanceof Array) || !(y instanceof Array)) {
+            throw new Error('=l expects two lists');
+        }
+        return listEq(x,y) ? '#t' : '#f';
+    }))
     .add('<',pair(function(x,y) {return x<y? '#t':'#f';}))
     .add('cons',function(x) {return function(y) {
-        if(y==='#nil') {return [x];}
         if(!(y instanceof Array)) {throw new Error('cons expect a list as second argument')}
         return [x].concat(y);}
     })
     .add('car',function(x) {
         if(!(x instanceof Array)) {throw new Error('car expect a list as first argument');}
-        if(x.length===0) {return '#nil';}
+        if(x.length===0) {throw new Error('Cannot extract head of empty list');}
         return x[0];
     })
     .add('cdr',function(x) {
         if(!(x instanceof Array)) {throw new Error('cdr expect a list as first argument');}
-        if(x.length===1) {return '#nil';}
+        if(x.length===0) {throw new Error('Cannot extract tail of empty list');}
         return x.splice(1);
     })
     .add('alert',function(x) {
@@ -107,7 +127,7 @@ var desugar = function (expr) {
                     return ['lambda-one',formal,desugar(expr[2])];
                 }
                 
-            case 'quote': return expr;
+            case 'quote': return expr;//['quote',desugar(expr[1])];
             case 'define':
                 return ['define',expr[1],desugar(expr[2])];
             case 'set!':
