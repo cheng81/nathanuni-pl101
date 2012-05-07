@@ -43,8 +43,8 @@
 		background-color: #efefef;
 	}
 </style>
-<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>
-<!--<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>-->
+<!--<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>-->
+<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>
 
 <script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="../js/codemirror.js"></script>
@@ -144,6 +144,63 @@ $(document).ready(function() {
         (fold fn (fn accum (car lst)) (cdr lst)))))
 
 (fold + 0 '(1 2 3 4))</div>
+	<div id="stdlib">(define id
+	(lambda (x y)
+	x))
+
+(define empty?
+	(lambda (lst)
+		(=l lst '())))
+
+(define map
+	(lambda (fn lst)
+		(if (empty? lst)
+		'()
+		(cons (fn (car lst)) (map fn (cdr lst))))))
+
+(define fold
+	(lambda (fn accum lst)
+		(if (empty? lst)
+		accum
+		(fold fn (fn (car lst) accum) (cdr lst)))))
+
+(define append
+	(lambda (l1 l2)
+		(begin
+		(define tmp l2)
+		(define app
+			(lambda (l)
+				(if (empty? l)
+				tmp
+				(begin
+				(define el (car l))
+				(app (cdr l))
+				(set! tmp (cons el tmp))))))
+		(app l1)
+		(id tmp #nil))))
+
+(define reverse
+	(lambda (l)
+		(begin
+		(define rev
+			(lambda (l1 l2)
+				(if (empty? l1)
+				l2
+				(rev (cdr l1) (cons (car l1) l2)))))
+		(rev l '()))))
+
+(define append
+	(lambda (l1 l2)
+		(begin
+		(define app
+			(lambda (l accum)
+				(if (empty? l)
+				accum
+				(app (cdr l) (cons (car l) accum)))))
+		(app (reverse l1) l2))))
+
+
+(append '(1 2) '(3 4 5))</div>
 </div>
 </body>
 </html>
