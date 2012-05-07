@@ -923,6 +923,8 @@ module.exports = (function(){
 	(function(require,module,exports,process) {
 
 /*---------------------------------------------------*/
+var util = require('util')
+
 var lookup = function(env,v) {
     if(env===undefined||env===null) {
         throw new Error('Value '+v+' not found');
@@ -992,15 +994,18 @@ var stdlib = function() {
     .add('=',pair(function(x,y) {return x===y ? '#t':'#f';}))
     .add('<',pair(function(x,y) {return x<y? '#t':'#f';}))
     .add('cons',function(x) {return function(y) {
+        if(y==='#nil') {return [x];}
         if(!(y instanceof Array)) {throw new Error('cons expect a list as second argument')}
         return [x].concat(y);}
     })
     .add('car',function(x) {
         if(!(x instanceof Array)) {throw new Error('car expect a list as first argument');}
+        if(x.length===0) {return '#nil';}
         return x[0];
     })
     .add('cdr',function(x) {
         if(!(x instanceof Array)) {throw new Error('cdr expect a list as first argument');}
+        if(x.length===1) {return '#nil';}
         return x.splice(1);
     })
     .add('alert',function(x) {
@@ -1015,8 +1020,52 @@ var stdlib = function() {
     return bld.env();
 };
 
+var desugar = function (expr) {
+    if(expr instanceof Array) {
+        switch(expr[0]) {
+            case 'lambda':
+                var formals = expr[1];
+                var formal = formals.shift();
+                if(formals.length>0) {
+                    return ['lambda-one',formal,desugar(['lambda',formals,expr[2]])];    
+                } else {
+                    return ['lambda-one',formal,desugar(expr[2])];
+                }
+                
+            case 'quote': return expr;
+            case 'define':
+                return ['define',expr[1],desugar(expr[2])];
+            case 'set!':
+                return ['set!',expr[1],desugar(expr[2])];
+            case 'if':
+                return ['if',desugar(expr[1]),desugar(expr[2]),desugar(expr[3])];
+            case 'begin':
+                var out = ['begin'];
+                for (var i = 1; i < expr.length; i++) {
+                    out[i] = desugar(expr[i]);
+                };
+                return out;
+            case '&':
+                return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
+            case '|':
+                return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
+            default:
+                var call = [desugar(expr.shift()),desugar(expr.shift())];
+                while(expr.length>0) {
+                    call = [call,desugar(expr.shift())];
+                }
+                return call;
+        }
+    } else {
+        return expr;
+    }
+}
+
 var evalScheem = function (expr, env) {
-    env = env || stdlib();
+    if(env===undefined) {
+        env = env || stdlib();
+        expr = desugar(expr);
+    }
 
     // Numbers evaluate to themselves
     if (typeof expr === 'number') {
@@ -1050,20 +1099,10 @@ var evalScheem = function (expr, env) {
             return function(_arg) {
                 return evalScheem(expr[2], bind(env,expr[1],_arg));
             };
-        case 'lambda':
-            var body = expr[2];
-            var formals = expr[1];
-            if(formals.length>1) {
-                return evalScheem(['lambda-one',formals.shift(),['lambda',formals,body]],env);
-            } else {
-                return evalScheem(['lambda-one',formals[0],body],env);
-            }
         default:
-            var fn = evalScheem(expr[0], env);
-            for (var i = 1; i < expr.length; i++) {
-                fn = fn(evalScheem(expr[i],env));
-            };
-            return fn;
+            var fun = evalScheem(expr[0],env);
+            var arg = evalScheem(expr[1],env);
+            return fun(arg);
     }
 };
 
@@ -1098,16 +1137,19 @@ var parser = require('./scheemparser')
 module.exports = {
 	parser: parser,
 	interpreter: interpreter,
-	make: function(src,env) {
+	make: function(src) {
+		var ast = null;
 		try {
-			var ast = parser.parse(src);
-			var res = interpreter.evalScheem(ast,env||{});
+			src = "(begin " + src + ")";
+			ast = parser.parse(src);
+			var res = interpreter.evalScheem(ast);
 			return {
 				ast: ast,
 				result: res
 			};
 		} catch(err) {
 			return {
+				ast: ast,
 				error: err
 			};
 		}
