@@ -67,6 +67,7 @@ $(document).ready(function() {
 				var html = '';
 				if(out.result) {
 					html = JSON.stringify(out.result);
+					console.log(out.ast);
 				} else {
 					html = out.error.name + ':' + out.error.message;
 				}
@@ -97,34 +98,34 @@ $(document).ready(function() {
 	<div id="main">
 	<textarea id="source">
 ;; some scheem source
-(+ 1 2)</textarea>
+</textarea>
 	<!--<input type="button" value="Run" id="submit"/>-->
 	</div>
 	<div id="result">&nbsp;</div>
 </div>
+<div style="clear:both">&nbsp;</div>
 
 <div id="examples">
-	<div id="map">(define empty?
-  (lambda (lst)
-    (=l '() lst)))
+	<div id="map">(defun map (fn lst)
+       (match lst
+              ( (cons x xs) (cons (fn x) (map fn xs)) )
+              ( _ '())))
 
-(define map 
-  (lambda (fn lst)
-    (begin
-     (if (empty? lst) '() (cons (fn (car lst)) (map fn (cdr lst)))))))
-
-(map (+ 1) '(1 2 3))</div>
+(map (+ 1) (list 1 2 3))</div>
 	<div id="curry">(define plusser
   (lambda (x y)
     (+ x y)))
 (define plus5 (plusser 5))
 (define plus1 (plusser 1))
 (plus5 (plus1 3))</div>
-	<div id="fibonacci">(define fib
-  (lambda (x)
-    (if (= x 0) 1
-        (if (= x 1) 1
-            (+ (fib (- x 1)) (fib (- x 2)))))))
+	<div id="fibonacci">(defun fib (n)
+       (match n
+              (0 1)
+              (1 1)
+              (x (+ 
+                  (fib (- x 1)) 
+                  (fib (- x 2))))))
+
 (fib 5)</div>
 	<div id="lookup-env">(define lookup
   (lambda (key dict)
@@ -133,71 +134,64 @@ $(document).ready(function() {
         (lookup key (car (cdr (cdr dict)))))))
 
 (lookup 'foo '(bar 5 (foo 10)))</div>
-	<div id="fold">(define empty?
-  (lambda (x)
-    (=l x '())))
+	<div id="fold">(defun empty? (x)
+       (=l x '()))
 
-(define fold
-  (lambda (fn accum lst)
-    (if (empty? lst)
-        accum
-        (fold fn (fn accum (car lst)) (cdr lst)))))
+(defun fold (fn accum lst)
+       (match lst
+              ( (cons x xs) (fold fn (fn accum x) xs))
+              ( _ accum)))
 
 (fold + 0 '(1 2 3 4))</div>
-	<div id="stdlib">(define id
-	(lambda (x y)
-	x))
+	<div id="stdlib">(defun id (x _) x)
 
-(define empty?
-	(lambda (lst)
-		(=l lst '())))
+(defun empty? (lst) (=l lst '()))
 
-(define map
-	(lambda (fn lst)
-		(if (empty? lst)
-		'()
-		(cons (fn (car lst)) (map fn (cdr lst))))))
+(defun map (fn lst)
+	(match lst
+		( (cons x xs) (cons (fn x) (map fn xs)) )
+		( _ '())))
 
-(define fold
-	(lambda (fn accum lst)
-		(if (empty? lst)
-		accum
-		(fold fn (fn (car lst) accum) (cdr lst)))))
+(defun fold (fn accum lst)
+	(match lst
+		( (cons x xs) (fold fn (fn accum x) xs) )
+		( _ accum )))
 
-(define append
-	(lambda (l1 l2)
-		(begin
+(defun append (l1 l2)
+	(begin
 		(define tmp l2)
-		(define app
-			(lambda (l)
-				(if (empty? l)
-				tmp
-				(begin
-				(define el (car l))
-				(app (cdr l))
-				(set! tmp (cons el tmp))))))
+		(defun app (l)
+			(match l
+				( (cons x xs) (
+				begin
+					(define el x)
+					(app xs)
+					(set! tmp (cons el tmp))))
+				( _ tmp )))
 		(app l1)
-		(id tmp #nil))))
+		(id tmp #nil)))
 
-(define reverse
-	(lambda (l)
-		(begin
-		(define rev
-			(lambda (l1 l2)
-				(if (empty? l1)
-				l2
-				(rev (cdr l1) (cons (car l1) l2)))))
-		(rev l '()))))
+(defun reverse (lst)
+	(begin
+		(defun rev (l1 l2)
+			(match l1
+				( (cons x xs) (rev xs (cons x l2)) )
+				( _ l2)))
+		(rev lst '())))
 
-(define append
-	(lambda (l1 l2)
-		(begin
-		(define app
-			(lambda (l accum)
-				(if (empty? l)
-				accum
-				(app (cdr l) (cons (car l) accum)))))
-		(app (reverse l1) l2))))
+(defun append (l1 l2)
+	(begin
+		(defun app (l accum)
+			(match l
+				( (cons x xs) (app xs (cons x accum)) )
+				( _ accum ) ))
+		(app (reverse l1) l2)))
+
+
+(defun nth (i lst)
+	(if (= 0 i)
+		(car lst)
+		(nth (- i 1) (cdr lst))))
 
 
 (append '(1 2) '(3 4 5))</div>
