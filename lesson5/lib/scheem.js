@@ -81,6 +81,7 @@ var stdlib = function() {
     .add('-',pair(function(x,y) {return x-y;}))
     .add('*',pair(function(x,y) {return x*y;}))
     .add('/',pair(function(x,y) {return x/y;}))
+    .add('%',pair(function(x,y) {return x%y;}))
     .add('=',pair(function(x,y) {return x===y ? '#t':'#f';}))
     .add('=l',pair(function(x,y) {
         if(!(x instanceof Array) || !(y instanceof Array)) {
@@ -110,24 +111,100 @@ var stdlib = function() {
             console.log(x);
         }
         return 0;
+    })
+    .add('error',function(err) {
+        throw new Error(err);
+    })
+    .add('de-cons',function(lst) {
+        return function(fun) {
+            return function(fail) {
+                if(lst.length === 0) {return fail();}
+                return ((fun(lst[0]))(lst.splice(1)))
+            }
+        }
     });
 
     return bld.env();
 };
 
+var _id=0;
+var _identifier = function(str) {
+    var id = _id++;
+    var out = '=_gen_'+(id)+'_'+str;
+    return out;
+}
+var desugarMatch = function (expr) {
+    expr.shift(); //get rid of match
+    var discE = expr.shift();
+    var discId = _identifier('disc');
+    var _collect = function(arr,idx) {
+        var out = [];
+        for (var i = 0; i < arr.length; i++) {
+            out[i] = arr[i][idx];
+        };
+        return out;
+    };
+    
+    var _desugarPatterns = function(ptns,ids,body,failId) {
+        if(ptns.length===0) {return body;}
+        var ptn = ptns.shift();
+        var id = ids.shift();
+        return _desugarPattern(ptn,id, _desugarPatterns(ptns,ids,body,failId),failId);
+    };
+    var _desugarPattern = function(ptn,discr,body,failId) {
+        if(ptn==='_') {
+            return body;
+        }
+        if((typeof ptn === 'string') && ptn[0] !== '#') {
+            return ['begin',['define',ptn,discr],body];
+        }
+        if(ptn instanceof Array) {
+            var name = ptn.shift();
+            var ids = [];
+            var idsCopy = [];
+            for (var i = 0; i < ptn.length; i++) {
+                ids[i] = _identifier('ptn');
+                idsCopy[i] = ids[i];
+            };
+            return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
+        }
+        return ['if',['=',discr,ptn],body,[failId,'#nil']];
+        //throw new Error('unknown pattern',ptn);
+    };
+    var _desugarMatchClauses = function(ptns,bodies,discr) {
+        if(ptns.length===0) {return ['error',['quote','no-match']];}
+        var failId = _identifier('fail');
+        var ptn = ptns.shift();
+        var body = bodies.shift();
+        return ['begin',['define',failId,['lambda',[],_desugarMatchClauses(ptns,bodies,discr)]],
+        _desugarPattern(ptn,discr,body,failId)];
+    };
+    return ['begin',['define',discId,discE],_desugarMatchClauses(_collect(expr,0),_collect(expr,1),discId)];
+};
 var desugar = function (expr) {
     if(expr instanceof Array) {
         switch(expr[0]) {
             case 'lambda':
                 var formals = expr[1];
                 var formal = formals.shift();
+                if(formal===undefined) {formal = '_';}
                 if(formals.length>0) {
                     return ['lambda-one',formal,desugar(['lambda',formals,expr[2]])];    
                 } else {
                     return ['lambda-one',formal,desugar(expr[2])];
                 }
-                
             case 'quote': return expr;//['quote',desugar(expr[1])];
+            case 'list':
+                expr.shift(); //get rid of 'list'
+                var out = ['cons',expr.pop(),['quote',[]]]
+                while(expr.length !== 0) {
+                    out = ['cons',expr.pop(),out];
+                }
+                return desugar(out);
+            case 'match':
+                return desugar(desugarMatch(expr));
+            case 'defun':
+                return desugar(['define',expr[1],['lambda',expr[2],expr[3]]]);
             case 'define':
                 return ['define',expr[1],desugar(expr[2])];
             case 'set!':
@@ -160,6 +237,8 @@ var evalScheem = function (expr, env) {
     if(env===undefined) {
         env = env || stdlib();
         expr = desugar(expr);
+        //console.log('desugard',expr,expr1);
+        //expr=expr1;
     }
 
     // Numbers evaluate to themselves
@@ -202,3 +281,4 @@ var evalScheem = function (expr, env) {
 };
 
 module.exports.evalScheem = evalScheem;
+module.exports.desugar = desugar;

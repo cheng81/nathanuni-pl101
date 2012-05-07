@@ -3,7 +3,9 @@ var assert = require('chai').assert
   , scheem = require('../lib')
   , evalScheem = scheem.interpreter.evalScheem
   , evalScheemStr = function(str) {
-    return evalScheem( scheem.parser.parse(str) );
+    var ast = scheem.parser.parse(str);
+    console.log(ast);
+    return evalScheem( ast );
   };
 
 var env = function() {

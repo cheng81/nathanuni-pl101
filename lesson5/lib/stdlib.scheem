@@ -1,0 +1,50 @@
+(defun id (x _) x)
+
+(defun empty? (lst) (=l lst '()))
+
+(defun map (fn lst)
+	(match lst
+		( (cons x xs) (cons (fn x) (map fn xs)) )
+		( _ '())))
+
+(defun fold (fn accum lst)
+	(match lst
+		( (cons x xs) (fold fn (fn accum x) xs) )
+		( _ accum )))
+
+(defun append (l1 l2)
+	(begin
+		(define tmp l2)
+		(defun app (l)
+			(match l
+				( (cons x xs) (
+				begin
+					(define el x)
+					(app xs)
+					(set! tmp (cons el tmp))))
+				( _ tmp )))
+		(app l1)
+		(id tmp #nil)))
+
+(defun reverse (lst)
+	(begin
+		(defun rev (l1 l2)
+			(match l1
+				( (cons x xs) (rev xs (cons x l2)) )
+				( _ l2)))
+		(rev lst '())))
+
+(defun append (l1 l2)
+	(begin
+		(defun app (l accum)
+			(match l
+				( (cons x xs) (app xs (cons x accum)) )
+				( _ accum ) ))
+		(app (reverse l1) l2)))
+
+
+(defun nth (i lst)
+	(if (= 0 i)
+		(car lst)
+		(nth (- i 1) (cdr lst))))
+
