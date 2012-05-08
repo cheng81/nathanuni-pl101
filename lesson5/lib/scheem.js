@@ -1,4 +1,5 @@
 var util = require('util')
+  , stdlibast = require('./stdlib').stdlibast;
 
 var lookup = function(env,v) {
     if(env===undefined||env===null) {
@@ -38,7 +39,7 @@ var bind = function(env,v,val) {
 
 var stdlib = function() {
     var EnvBuilder = function() {
-        var _env = null;
+        var _env = {};
         var s = this;
         this.add = function(k,v) {
             _env = {
@@ -127,21 +128,30 @@ var stdlib = function() {
     })
     .add('error',function(err) {
         throw new Error(err);
-    })
-    .add('de-cons',function(lst) {
-        return function(fun) {
-            return function(fail) {
-                if(lst.length === 0) {return fail();}
-                return ((fun(lst[0]))(lst.slice(1)))
-            }
-        }
     });
+    // .add('de-cons',function(lst) {
+    //     return function(fun) {
+    //         return function(fail) {
+    //             if(!(lst instanceof Array)) {return fail();}
+    //             if(lst.length === 0) {return fail();}
+    //             return ((fun(lst[0]))(lst.slice(1)))
+    //         }
+    //     }
+    // });
     /*
     As many other funs here, de-cons could be implemented in scheem directly:
     (defun de-cons (lst fun fail)
         (if (empty? lst) (fail) (fun (car lst) (cdr lst))))
+    <<------->>
+    some functions are now defined in stdlib.js,
+    in an orrible string.
     */
 
+    // var primenv = bld.env();
+    // var stdlibds = desugar(stdlibast);
+    // evalScheem(stdlibds,primenv);
+    // console.log('initial environment',primenv);
+    // return primenv;
     return bld.env();
 };
 
@@ -191,7 +201,8 @@ var desugarMatch = function (expr) {
         if(ptn instanceof Array) {
             // quote is left as-is, = used for testing
             if(ptn[0]==='quote') {
-                return ['if',['=',discr,ptn],body,[failId,'#nil']];
+                var eqOp = (ptn[1] instanceof Array) ? '=l' : '=';
+                return ['if',[eqOp,discr,ptn],body,[failId,'#nil']];
             } else {
                 // otherwise, data-destructor must be used
                 // currently, only de-cons is defined (since we just have cons-cells)
@@ -289,6 +300,27 @@ var desugar = function (expr) {
                 return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
             case '|':
                 return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
+            case 'define*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],cur[1]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+            case 'defun*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],['lambda',cur[1],cur[2]]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+                return res;
             default:
                 if(expr.length===1) {expr.push('#nil');}
                 var call = [desugar(expr.shift()),desugar(expr.shift())];
@@ -304,10 +336,8 @@ var desugar = function (expr) {
 
 var evalScheem = function (expr, env) {
     if(env===undefined) {
-        env = env || stdlib();
+        env = bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
-        //console.log('desugard',expr,expr1);
-        //expr=expr1;
     }
 
     // Numbers evaluate to themselves
@@ -349,5 +379,12 @@ var evalScheem = function (expr, env) {
     }
 };
 
+//
+var _stdlib = stdlib();
+evalScheem( desugar(stdlibast),_stdlib );
+//
+
 module.exports.evalScheem = evalScheem;
 module.exports.desugar = desugar;
+module.exports.stdlib = _stdlib;
+//module.exports.reset = globalLib;

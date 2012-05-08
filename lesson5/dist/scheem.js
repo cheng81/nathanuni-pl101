@@ -585,34 +585,59 @@ module.exports = (function(){
         
         
         var savedPos0 = pos;
-        if (input.substr(pos).match(/^[0-9]/) !== null) {
-          var result3 = input.charAt(pos);
-          pos++;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === "-") {
+          var result6 = "-";
+          pos += 1;
         } else {
-          var result3 = null;
+          var result6 = null;
           if (reportMatchFailures) {
-            matchFailed("[0-9]");
+            matchFailed("\"-\"");
           }
         }
+        var result3 = result6 !== null ? result6 : '';
         if (result3 !== null) {
-          var result1 = [];
-          while (result3 !== null) {
-            result1.push(result3);
-            if (input.substr(pos).match(/^[0-9]/) !== null) {
-              var result3 = input.charAt(pos);
-              pos++;
-            } else {
-              var result3 = null;
-              if (reportMatchFailures) {
-                matchFailed("[0-9]");
+          if (input.substr(pos).match(/^[0-9]/) !== null) {
+            var result5 = input.charAt(pos);
+            pos++;
+          } else {
+            var result5 = null;
+            if (reportMatchFailures) {
+              matchFailed("[0-9]");
+            }
+          }
+          if (result5 !== null) {
+            var result4 = [];
+            while (result5 !== null) {
+              result4.push(result5);
+              if (input.substr(pos).match(/^[0-9]/) !== null) {
+                var result5 = input.charAt(pos);
+                pos++;
+              } else {
+                var result5 = null;
+                if (reportMatchFailures) {
+                  matchFailed("[0-9]");
+                }
               }
             }
+          } else {
+            var result4 = null;
+          }
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
           }
         } else {
           var result1 = null;
+          pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(digits) { return parseInt(digits.join(""), 10) })(result1)
+          ? (function(minus, digits) {
+          	var num = parseInt(digits.join(""), 10);
+          	return (minus==='-') ? (-num) : num;
+          	})(result1[0], result1[1])
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -889,6 +914,59 @@ module.exports = (function(){
 
 
 (function(r) {
+	var file = '/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib/stdlib.js'
+	var exp = {}
+	var mod = {
+		exports: exp
+	}
+	console.log('defining module',file);
+	(function(require,module,exports,process) {
+
+/*---------------------------------------------------*/
+var parser = require('./scheemparser');
+
+var src = "\
+(defun*\
+	(id (x _) x)\
+	(empty? (lst) (=l '() lst))\
+	(fold (fn accum lst)\
+		(match lst\
+			( (cons x xs) (fold fn (fn accum x) xs) )\
+			( '() accum )))\
+	(map (fn lst)\
+		(match lst\
+			( (cons x xs) (cons (fn x) (map fn xs)) )\
+			( '() '() )))\
+	(reverse (lst)\
+		(fold (lambda (acc el) (cons el acc)) '() lst))\
+	(append (l1 l2)\
+		(fold (lambda (acc el) (cons el acc)) l2 (reverse l1)))\
+	(de-cons (lst fn fail)\
+		(if (list? lst)\
+			(if (empty? lst) (fail) (fn (car lst) (cdr lst)))\
+			(fail)))\
+	(nth (i lst)\
+		(if (= i 0)\
+			(car lst)\
+			(nth (- i 1) (cdr lst))))\
+)";
+
+module.exports.stdlibast = parser.parse(src);
+/*---------------------------------------------------*/
+
+	}
+	)(r,mod,exp,window.node2browser.globals.process);
+
+	window.node2browser.cache[file] = mod.exports
+	console.log('defined',file,mod.exports)
+	var idx = file.indexOf('/index.js')
+	if(idx>0&&file.length==(idx+'/index.js'.length)) {
+		window.node2browser.cache[file.substring(0,idx)] = mod.exports
+	}
+}(window.node2browser.makerequire('/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib')));
+
+
+(function(r) {
 	var file = '/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib/scheem.js'
 	var exp = {}
 	var mod = {
@@ -899,6 +977,7 @@ module.exports = (function(){
 
 /*---------------------------------------------------*/
 var util = require('util')
+  , stdlibast = require('./stdlib').stdlibast;
 
 var lookup = function(env,v) {
     if(env===undefined||env===null) {
@@ -938,7 +1017,7 @@ var bind = function(env,v,val) {
 
 var stdlib = function() {
     var EnvBuilder = function() {
-        var _env = null;
+        var _env = {};
         var s = this;
         this.add = function(k,v) {
             _env = {
@@ -1027,21 +1106,30 @@ var stdlib = function() {
     })
     .add('error',function(err) {
         throw new Error(err);
-    })
-    .add('de-cons',function(lst) {
-        return function(fun) {
-            return function(fail) {
-                if(lst.length === 0) {return fail();}
-                return ((fun(lst[0]))(lst.slice(1)))
-            }
-        }
     });
+    // .add('de-cons',function(lst) {
+    //     return function(fun) {
+    //         return function(fail) {
+    //             if(!(lst instanceof Array)) {return fail();}
+    //             if(lst.length === 0) {return fail();}
+    //             return ((fun(lst[0]))(lst.slice(1)))
+    //         }
+    //     }
+    // });
     /*
     As many other funs here, de-cons could be implemented in scheem directly:
     (defun de-cons (lst fun fail)
         (if (empty? lst) (fail) (fun (car lst) (cdr lst))))
+    <<------->>
+    some functions are now defined in stdlib.js,
+    in an orrible string.
     */
 
+    // var primenv = bld.env();
+    // var stdlibds = desugar(stdlibast);
+    // evalScheem(stdlibds,primenv);
+    // console.log('initial environment',primenv);
+    // return primenv;
     return bld.env();
 };
 
@@ -1064,7 +1152,7 @@ var desugarMatch = function (expr) {
     var discE = expr.shift();
     // discriminator identifier
     var discId = _identifier('disc');
-    
+
     var _collect = function(arr,idx) {
         var out = [];
         for (var i = 0; i < arr.length; i++) {
@@ -1091,7 +1179,8 @@ var desugarMatch = function (expr) {
         if(ptn instanceof Array) {
             // quote is left as-is, = used for testing
             if(ptn[0]==='quote') {
-                return ['if',['=',discr,ptn],body,[failId,'#nil']];
+                var eqOp = (ptn[1] instanceof Array) ? '=l' : '=';
+                return ['if',[eqOp,discr,ptn],body,[failId,'#nil']];
             } else {
                 // otherwise, data-destructor must be used
                 // currently, only de-cons is defined (since we just have cons-cells)
@@ -1162,7 +1251,6 @@ var desugar = function (expr) {
                 cur = expr.shift();
                 tmp.push(cur[1]);
                 return desugar(out);
-
             case 'list':
                 expr.shift(); //get rid of 'list'
                 var out = ['cons',expr.pop(),['quote',[]]]
@@ -1190,6 +1278,27 @@ var desugar = function (expr) {
                 return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
             case '|':
                 return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
+            case 'define*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],cur[1]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+            case 'defun*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],['lambda',cur[1],cur[2]]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+                return res;
             default:
                 if(expr.length===1) {expr.push('#nil');}
                 var call = [desugar(expr.shift()),desugar(expr.shift())];
@@ -1205,10 +1314,8 @@ var desugar = function (expr) {
 
 var evalScheem = function (expr, env) {
     if(env===undefined) {
-        env = env || stdlib();
+        env = bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
-        //console.log('desugard',expr,expr1);
-        //expr=expr1;
     }
 
     // Numbers evaluate to themselves
@@ -1250,8 +1357,15 @@ var evalScheem = function (expr, env) {
     }
 };
 
+//
+var _stdlib = stdlib();
+evalScheem( desugar(stdlibast),_stdlib );
+//
+
 module.exports.evalScheem = evalScheem;
 module.exports.desugar = desugar;
+module.exports.stdlib = _stdlib;
+//module.exports.reset = globalLib;
 /*---------------------------------------------------*/
 
 	}

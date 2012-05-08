@@ -4,7 +4,7 @@ var assert = require('chai').assert
   , evalScheem = scheem.interpreter.evalScheem
   , evalScheemStr = function(str) {
     var ast = scheem.parser.parse(str);
-    console.log(ast);
+    //console.log(ast);
     return evalScheem( ast );
   };
 
@@ -206,6 +206,12 @@ suite('evalScheemStr', function() {
         assert.deepEqual(
             evalScheemStr("5"),
             5
+        );
+    });
+    test('negative number',function() {
+        assert.deepEqual(
+            evalScheemStr("-5"),
+            -5
         );
     });
     test('quoted list', function() {

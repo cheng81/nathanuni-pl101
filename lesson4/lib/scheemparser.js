@@ -462,34 +462,59 @@ module.exports = (function(){
         
         
         var savedPos0 = pos;
-        if (input.substr(pos).match(/^[0-9]/) !== null) {
-          var result3 = input.charAt(pos);
-          pos++;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === "-") {
+          var result6 = "-";
+          pos += 1;
         } else {
-          var result3 = null;
+          var result6 = null;
           if (reportMatchFailures) {
-            matchFailed("[0-9]");
+            matchFailed("\"-\"");
           }
         }
+        var result3 = result6 !== null ? result6 : '';
         if (result3 !== null) {
-          var result1 = [];
-          while (result3 !== null) {
-            result1.push(result3);
-            if (input.substr(pos).match(/^[0-9]/) !== null) {
-              var result3 = input.charAt(pos);
-              pos++;
-            } else {
-              var result3 = null;
-              if (reportMatchFailures) {
-                matchFailed("[0-9]");
+          if (input.substr(pos).match(/^[0-9]/) !== null) {
+            var result5 = input.charAt(pos);
+            pos++;
+          } else {
+            var result5 = null;
+            if (reportMatchFailures) {
+              matchFailed("[0-9]");
+            }
+          }
+          if (result5 !== null) {
+            var result4 = [];
+            while (result5 !== null) {
+              result4.push(result5);
+              if (input.substr(pos).match(/^[0-9]/) !== null) {
+                var result5 = input.charAt(pos);
+                pos++;
+              } else {
+                var result5 = null;
+                if (reportMatchFailures) {
+                  matchFailed("[0-9]");
+                }
               }
             }
+          } else {
+            var result4 = null;
+          }
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
           }
         } else {
           var result1 = null;
+          pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(digits) { return parseInt(digits.join(""), 10) })(result1)
+          ? (function(minus, digits) {
+          	var num = parseInt(digits.join(""), 10);
+          	return (minus==='-') ? (-num) : num;
+          	})(result1[0], result1[1])
           : null;
         if (result2 !== null) {
           var result0 = result2;
