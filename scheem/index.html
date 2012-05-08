@@ -255,18 +255,23 @@ $(document).ready(function() {
 				( 'if (if (eval (nth 1 expr) env)
 					(eval (nth 2 expr) env)
 					(eval (nth 3 expr) env) ) )
-				( 'let (eval (nth 2 expr) (define-env env (nth 0 (nth 1 expr)) (nth 1 (nth 1 expr)))) )
+				( 'let (eval (nth 2 expr) (define-env env (nth 0 (nth 1 expr)) (eval (nth 1 (nth 1 expr)) env))) )
 				( 'begin (fold (lambda (_res sub) (eval sub env)) 0 (cdr expr)))
 				( 'alert (alert (eval (nth 1 expr) env)) )
-				( _ (alert expr) )
+                ( 'abs (lambda (arg) (eval (nth 2 expr) (define-env env (nth 1 expr) arg))) )
+				( _ (begin
+                     (define fn (eval (nth 0 expr) env))
+                     (define arg (eval (nth 1 expr) env))
+                     (fn arg)) )
 			) )
 		)))
 
 (eval
 '(begin
-	(let (x 1)
-	(if (= x 2) 2 3)))
-'())</div>
+	(let (plus1 (abs x (+ 1 x)))
+	(plus1 10)))
+'())
+</div>
 </div>
 </body>
 </html>
