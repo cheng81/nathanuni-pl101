@@ -7,7 +7,7 @@ module.exports = {
 	make: function(src) {
 		var ast = null;
 		try {
-			src = "(begin " + src + ")";
+			src = "(begin\r\n" + src + "\r\n)";
 			ast = parser.parse(src);
 			var res = interpreter.evalScheem(ast);
 			return {

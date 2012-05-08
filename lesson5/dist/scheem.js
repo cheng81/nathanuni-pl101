@@ -139,8 +139,10 @@ module.exports = (function(){
         "expression": parse_expression,
         "integer": parse_integer,
         "list": parse_list,
+        "quasiquote": parse_quasiquote,
         "quote": parse_quote,
         "space": parse_space,
+        "unquote": parse_unquote,
         "validchar": parse_validchar
       };
       
@@ -447,19 +449,29 @@ module.exports = (function(){
         var savedPos1 = pos;
         var result3 = parse__();
         if (result3 !== null) {
-          var result8 = parse_list();
-          if (result8 !== null) {
-            var result4 = result8;
+          var result10 = parse_list();
+          if (result10 !== null) {
+            var result4 = result10;
           } else {
-            var result7 = parse_atom();
-            if (result7 !== null) {
-              var result4 = result7;
+            var result9 = parse_atom();
+            if (result9 !== null) {
+              var result4 = result9;
             } else {
-              var result6 = parse_quote();
-              if (result6 !== null) {
-                var result4 = result6;
+              var result8 = parse_quote();
+              if (result8 !== null) {
+                var result4 = result8;
               } else {
-                var result4 = null;;
+                var result7 = parse_quasiquote();
+                if (result7 !== null) {
+                  var result4 = result7;
+                } else {
+                  var result6 = parse_unquote();
+                  if (result6 !== null) {
+                    var result4 = result6;
+                  } else {
+                    var result4 = null;;
+                  };
+                };
               };
             };
           }
@@ -706,6 +718,108 @@ module.exports = (function(){
         return result0;
       }
       
+      function parse_quasiquote() {
+        var cacheKey = 'quasiquote@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === "`") {
+          var result3 = "`";
+          pos += 1;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("\"`\"");
+          }
+        }
+        if (result3 !== null) {
+          var result4 = parse_expression();
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos1;
+        }
+        var result2 = result1 !== null
+          ? (function(e) { return ['quasiquote',e]; })(result1[1])
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_unquote() {
+        var cacheKey = 'unquote@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === ",") {
+          var result3 = ",";
+          pos += 1;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("\",\"");
+          }
+        }
+        if (result3 !== null) {
+          var result4 = parse_expression();
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos1;
+        }
+        var result2 = result1 !== null
+          ? (function(e) { return ['unquote',e]; })(result1[1])
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
       function parse_list() {
         var cacheKey = 'list@' + pos;
         var cachedResult = cache[cacheKey];
@@ -914,6 +1028,204 @@ module.exports = (function(){
 
 
 (function(r) {
+	var file = '/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib/desugar.js'
+	var exp = {}
+	var mod = {
+		exports: exp
+	}
+	console.log('defining module',file);
+	(function(require,module,exports,process) {
+
+/*---------------------------------------------------*/
+////PATTERN MATCHING MADNESS
+// we need to build identifiers on-the-fly
+var _id=0;
+var fresh = function(str) {
+    var id = _id++;
+    var out = '=_gen_'+(id)+'_'+str;
+    return out;
+}
+
+// driver fun, takes a (match) expression
+// and returns a series on crazy nested if
+// and failure continuations
+var desugarMatch = function (expr) {
+    expr.shift(); //get rid of match
+
+    // discriminator expression
+    var discE = expr.shift();
+    // discriminator identifier
+    var discId = fresh('disc');
+
+    var _desugarPatterns = function(ptns,ids,body,failId) {
+        if(ptns.length===0) {return body;}
+        var ptn = ptns.shift();
+        var id = ids.shift();
+        return _desugarPattern(ptn,id, _desugarPatterns(ptns,ids,body,failId),failId);
+    };
+    var _desugarPattern = function(ptn,discr,body,failId) {
+        // match everything, needs just the body
+        if(ptn==='_') {
+            return body;
+        }
+        // match everything, just bind the value to a variable
+        if((typeof ptn === 'string') && ptn[0] !== '#') {
+            return ['begin',['define',ptn,discr],body];
+        }
+        if(ptn instanceof Array) {
+            // quote is left as-is, = used for testing
+            if(ptn[0]==='quote') {
+                var eqOp = (ptn[1] instanceof Array) ? '=l' : '=';
+                return ['if',[eqOp,discr,ptn],body,[failId,'#nil']];
+            } else {
+                // otherwise, data-destructor must be used
+                // currently, only de-cons is defined (since we just have cons-cells)
+                var name = ptn.shift();
+                var ids = [];
+                var idsCopy = [];
+                for (var i = 0; i < ptn.length; i++) {
+                    ids[i] = fresh('ptn');
+                    idsCopy[i] = ids[i];
+                };
+                // of course we can have sub-patterns in this case!
+                // that's what _desugarPatterns is for
+                return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
+            }
+        }
+        // otherwise is a constant value, = used for testing
+        return ['if',['=',discr,ptn],body,[failId,'#nil']];
+    };
+    var _desugarMatchClauses = function(exprs,discr) {
+        // last pattern is FAILURE!
+        if(exprs.length===0) {return ['error',['quote','no-match']];}
+        var expr = exprs.shift();
+        // get a new failure-continuation identifier
+        var failId = fresh('fail');
+        var ptn = expr[0];
+        var body = expr[1];
+        /*
+        Tries to match the pattern, if fail calls <failId>
+        (begin
+            (define <failId> (lambda () <desugarMatchClauses>))
+            <desugarPattern>)*/
+        return ['begin',['define',failId,['lambda',[],_desugarMatchClauses(exprs,discr)]],
+        _desugarPattern(ptn,discr,body,failId)];
+    };
+
+    /*
+    (begin
+        (define <discId> <discE>)
+        <desugarMatchClauses>)*/
+    return ['begin',['define',discId,discE],_desugarMatchClauses(expr,discId)];
+};
+var desugar = function (expr) {
+    if(expr instanceof Array) {
+        switch(expr[0]) {
+            case 'lambda-one':
+                return ['lambda-one',expr[1],desugar(expr[2])];
+            case 'lambda':
+                var formals = expr[1];
+                var formal = formals.shift();
+                if(formal===undefined) {formal = '_';}
+                if(formals.length>0) {
+                    return ['lambda-one',formal,desugar(['lambda',formals,expr[2]])];    
+                } else {
+                    return ['lambda-one',formal,desugar(expr[2])];
+                }
+            case 'quote': return expr;
+            case 'quasiquote': return expr;
+            case 'unquote': return expr;
+            case 'cond':
+                expr.shift();//get rid of cond
+                var cur = expr.shift();
+                var out = ['if',cur[0],cur[1]];
+                var tmp = out;
+                while(expr.length!==1) {
+                    cur = expr.shift();
+                    var branch = ['if',cur[0],cur[1]];
+                    tmp.push( branch );
+                    tmp = branch;
+                }
+                cur = expr.shift();
+                tmp.push(cur[1]);
+                return desugar(out);
+            case 'list':
+                expr.shift(); //get rid of 'list'
+                var out = ['cons',expr.pop(),['quote',[]]]
+                while(expr.length !== 0) {
+                    out = ['cons',expr.pop(),out];
+                }
+                return desugar(out);
+            case 'match':
+                return desugar(desugarMatch(expr));
+            case 'defun':
+                return desugar(['define',expr[1],['lambda',expr[2],expr[3]]]);
+            case 'define':
+                return ['define',expr[1],desugar(expr[2])];
+            case 'set!':
+                return ['set!',expr[1],desugar(expr[2])];
+            case 'if':
+                return ['if',desugar(expr[1]),desugar(expr[2]),desugar(expr[3])];
+            case 'begin':
+                var out = ['begin'];
+                for (var i = 1; i < expr.length; i++) {
+                    out[i] = desugar(expr[i]);
+                };
+                return out;
+            case '&':
+                return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
+            case '|':
+                return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
+            case 'define*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],cur[1]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+            case 'defun*':
+                expr.shift();
+                var defs = [];
+                var sets = [];
+                for (var i = 0; i < expr.length; i++) {
+                    var cur = expr[i];
+                    defs[i] = ['define',cur[0],'#nil'];
+                    sets[i] = ['set!',cur[0],['lambda',cur[1],cur[2]]];
+                };
+                return desugar(['begin'].concat(defs).concat(sets));
+                return res;
+            default:
+                if(expr.length===1) {expr.push('#nil');}
+                var call = [desugar(expr.shift()),desugar(expr.shift())];
+                while(expr.length>0) {
+                    call = [call,desugar(expr.shift())];
+                }
+                return call;
+        }
+    } else {
+        return expr;
+    }
+};
+
+module.exports.desugar = desugar;
+/*---------------------------------------------------*/
+
+	}
+	)(r,mod,exp,window.node2browser.globals.process);
+
+	window.node2browser.cache[file] = mod.exports
+	console.log('defined',file,mod.exports)
+	var idx = file.indexOf('/index.js')
+	if(idx>0&&file.length==(idx+'/index.js'.length)) {
+		window.node2browser.cache[file.substring(0,idx)] = mod.exports
+	}
+}(window.node2browser.makerequire('/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib')));
+
+
+(function(r) {
 	var file = '/Users/frza/Documents/workspace.javascript/nathanuni/nathanuni-pl101/lesson5/lib/stdlib.js'
 	var exp = {}
 	var mod = {
@@ -949,6 +1261,10 @@ var src = "\
 		(if (= i 0)\
 			(car lst)\
 			(nth (- i 1) (cdr lst))))\
+	(not (x) (if x #f #t))\
+	(> (x y) (& (not (= x y)) (not (< x y))))\
+	(<= (x y) (| (= x y) (< x y)))\
+	(>= (x y) (| (= x y) (not (< x y))))\
 )";
 
 module.exports.stdlibast = parser.parse(src);
@@ -977,6 +1293,7 @@ module.exports.stdlibast = parser.parse(src);
 
 /*---------------------------------------------------*/
 var util = require('util')
+  , desugar = require('./desugar').desugar
   , stdlibast = require('./stdlib').stdlibast;
 
 var lookup = function(env,v) {
@@ -1107,213 +1424,13 @@ var stdlib = function() {
     .add('error',function(err) {
         throw new Error(err);
     });
-    // .add('de-cons',function(lst) {
-    //     return function(fun) {
-    //         return function(fail) {
-    //             if(!(lst instanceof Array)) {return fail();}
-    //             if(lst.length === 0) {return fail();}
-    //             return ((fun(lst[0]))(lst.slice(1)))
-    //         }
-    //     }
-    // });
-    /*
-    As many other funs here, de-cons could be implemented in scheem directly:
-    (defun de-cons (lst fun fail)
-        (if (empty? lst) (fail) (fun (car lst) (cdr lst))))
-    <<------->>
-    some functions are now defined in stdlib.js,
-    in an orrible string.
-    */
-
-    // var primenv = bld.env();
-    // var stdlibds = desugar(stdlibast);
-    // evalScheem(stdlibds,primenv);
-    // console.log('initial environment',primenv);
-    // return primenv;
     return bld.env();
 };
 
-////PATTERN MATCHING MADNESS
-// we need to build identifiers on-the-fly
-var _id=0;
-var _identifier = function(str) {
-    var id = _id++;
-    var out = '=_gen_'+(id)+'_'+str;
-    return out;
-}
-
-// driver fun, takes a (match) expression
-// and returns a series on crazy nested if
-// and failure continuations
-var desugarMatch = function (expr) {
-    expr.shift(); //get rid of match
-
-    // discriminator expression
-    var discE = expr.shift();
-    // discriminator identifier
-    var discId = _identifier('disc');
-
-    var _collect = function(arr,idx) {
-        var out = [];
-        for (var i = 0; i < arr.length; i++) {
-            out[i] = arr[i][idx];
-        };
-        return out;
-    };
-    
-    var _desugarPatterns = function(ptns,ids,body,failId) {
-        if(ptns.length===0) {return body;}
-        var ptn = ptns.shift();
-        var id = ids.shift();
-        return _desugarPattern(ptn,id, _desugarPatterns(ptns,ids,body,failId),failId);
-    };
-    var _desugarPattern = function(ptn,discr,body,failId) {
-        // match everything, needs just the body
-        if(ptn==='_') {
-            return body;
-        }
-        // match everything, just bind the value to a variable
-        if((typeof ptn === 'string') && ptn[0] !== '#') {
-            return ['begin',['define',ptn,discr],body];
-        }
-        if(ptn instanceof Array) {
-            // quote is left as-is, = used for testing
-            if(ptn[0]==='quote') {
-                var eqOp = (ptn[1] instanceof Array) ? '=l' : '=';
-                return ['if',[eqOp,discr,ptn],body,[failId,'#nil']];
-            } else {
-                // otherwise, data-destructor must be used
-                // currently, only de-cons is defined (since we just have cons-cells)
-                var name = ptn.shift();
-                var ids = [];
-                var idsCopy = [];
-                for (var i = 0; i < ptn.length; i++) {
-                    ids[i] = _identifier('ptn');
-                    idsCopy[i] = ids[i];
-                };
-                // of course we can have sub-patterns in this case!
-                // that's what _desugarPatterns is for
-                return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
-            }
-        }
-        // otherwise is a constant value, = used for testing
-        return ['if',['=',discr,ptn],body,[failId,'#nil']];
-    };
-    var _desugarMatchClauses = function(ptns,bodies,discr) {
-        // last pattern is FAILURE!
-        if(ptns.length===0) {return ['error',['quote','no-match']];}
-        // get a new failure-continuation identifier
-        var failId = _identifier('fail');
-        var ptn = ptns.shift();
-        var body = bodies.shift();
-        /*
-        Tries to match the pattern, if fail calls <failId>
-        (begin
-            (define <failId> (lambda () <desugarMatchClauses>))
-            <desugarPattern>)*/
-        return ['begin',['define',failId,['lambda',[],_desugarMatchClauses(ptns,bodies,discr)]],
-        _desugarPattern(ptn,discr,body,failId)];
-    };
-
-    /*
-    (begin
-        (define <discId> <discE>)
-        <desugarMatchClauses>)
-    */
-    return ['begin',['define',discId,discE],_desugarMatchClauses(_collect(expr,0),_collect(expr,1),discId)];
-};
-var desugar = function (expr) {
-    if(expr instanceof Array) {
-        switch(expr[0]) {
-            case 'lambda-one':
-                return ['lambda-one',expr[1],desugar(expr[2])];
-            case 'lambda':
-                var formals = expr[1];
-                var formal = formals.shift();
-                if(formal===undefined) {formal = '_';}
-                if(formals.length>0) {
-                    return ['lambda-one',formal,desugar(['lambda',formals,expr[2]])];    
-                } else {
-                    return ['lambda-one',formal,desugar(expr[2])];
-                }
-            case 'quote': return expr;
-            case 'cond':
-                expr.shift();//get rid of cond
-                var cur = expr.shift();
-                var out = ['if',cur[0],cur[1]];
-                var tmp = out;
-                while(expr.length!==1) {
-                    cur = expr.shift();
-                    var branch = ['if',cur[0],cur[1]];
-                    tmp.push( branch );
-                    tmp = branch;
-                }
-                cur = expr.shift();
-                tmp.push(cur[1]);
-                return desugar(out);
-            case 'list':
-                expr.shift(); //get rid of 'list'
-                var out = ['cons',expr.pop(),['quote',[]]]
-                while(expr.length !== 0) {
-                    out = ['cons',expr.pop(),out];
-                }
-                return desugar(out);
-            case 'match':
-                return desugar(desugarMatch(expr));
-            case 'defun':
-                return desugar(['define',expr[1],['lambda',expr[2],expr[3]]]);
-            case 'define':
-                return ['define',expr[1],desugar(expr[2])];
-            case 'set!':
-                return ['set!',expr[1],desugar(expr[2])];
-            case 'if':
-                return ['if',desugar(expr[1]),desugar(expr[2]),desugar(expr[3])];
-            case 'begin':
-                var out = ['begin'];
-                for (var i = 1; i < expr.length; i++) {
-                    out[i] = desugar(expr[i]);
-                };
-                return out;
-            case '&':
-                return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
-            case '|':
-                return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
-            case 'define*':
-                expr.shift();
-                var defs = [];
-                var sets = [];
-                for (var i = 0; i < expr.length; i++) {
-                    var cur = expr[i];
-                    defs[i] = ['define',cur[0],'#nil'];
-                    sets[i] = ['set!',cur[0],cur[1]];
-                };
-                return desugar(['begin'].concat(defs).concat(sets));
-            case 'defun*':
-                expr.shift();
-                var defs = [];
-                var sets = [];
-                for (var i = 0; i < expr.length; i++) {
-                    var cur = expr[i];
-                    defs[i] = ['define',cur[0],'#nil'];
-                    sets[i] = ['set!',cur[0],['lambda',cur[1],cur[2]]];
-                };
-                return desugar(['begin'].concat(defs).concat(sets));
-                return res;
-            default:
-                if(expr.length===1) {expr.push('#nil');}
-                var call = [desugar(expr.shift()),desugar(expr.shift())];
-                while(expr.length>0) {
-                    call = [call,desugar(expr.shift())];
-                }
-                return call;
-        }
-    } else {
-        return expr;
-    }
-}
-
 var evalScheem = function (expr, env) {
     if(env===undefined) {
+        //little trick to leave the standard bindings
+        //intact --damn define
         env = bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
     }
@@ -1330,6 +1447,25 @@ var evalScheem = function (expr, env) {
     switch (expr[0]) {
         case 'quote':
             return expr[1];
+        case 'quasiquote':
+            var unquote = function(v) {
+                if(v instanceof Array) {
+                    if(v[0]==='unquote') {
+                        return evalScheem(v[1],env);
+                    } else {
+                        var out = [];
+                        for (var i = 0; i < v.length; i++) {
+                            out[i] = unquote(v[i]);
+                        };
+                        return out;
+                    }
+                } else {
+                    return v;
+                }
+            };
+            return unquote(expr[1]);
+        case 'unquote':
+            return evalScheem(expr[1],env);
         case 'if':
             return (evalScheem(expr[1], env) === '#t') ?
                 evalScheem(expr[2], env) :
@@ -1358,6 +1494,10 @@ var evalScheem = function (expr, env) {
 };
 
 //
+//creates the standard library bindings
+//once and for all
+//evalScheem creates a fictional environment
+//to leave the original one intact
 var _stdlib = stdlib();
 evalScheem( desugar(stdlibast),_stdlib );
 //
@@ -1365,7 +1505,6 @@ evalScheem( desugar(stdlibast),_stdlib );
 module.exports.evalScheem = evalScheem;
 module.exports.desugar = desugar;
 module.exports.stdlib = _stdlib;
-//module.exports.reset = globalLib;
 /*---------------------------------------------------*/
 
 	}
@@ -1399,7 +1538,7 @@ module.exports = {
 	make: function(src) {
 		var ast = null;
 		try {
-			src = "(begin " + src + ")";
+			src = "(begin\r\n" + src + "\r\n)";
 			ast = parser.parse(src);
 			var res = interpreter.evalScheem(ast);
 			return {

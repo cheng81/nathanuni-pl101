@@ -24,6 +24,10 @@ var src = "\
 		(if (= i 0)\
 			(car lst)\
 			(nth (- i 1) (cdr lst))))\
+	(not (x) (if x #f #t))\
+	(> (x y) (& (not (= x y)) (not (< x y))))\
+	(<= (x y) (| (= x y) (< x y)))\
+	(>= (x y) (| (= x y) (not (< x y))))\
 )";
 
 module.exports.stdlibast = parser.parse(src);

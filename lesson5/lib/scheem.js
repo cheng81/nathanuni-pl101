@@ -1,4 +1,5 @@
 var util = require('util')
+  , desugar = require('./desugar').desugar
   , stdlibast = require('./stdlib').stdlibast;
 
 var lookup = function(env,v) {
@@ -129,213 +130,13 @@ var stdlib = function() {
     .add('error',function(err) {
         throw new Error(err);
     });
-    // .add('de-cons',function(lst) {
-    //     return function(fun) {
-    //         return function(fail) {
-    //             if(!(lst instanceof Array)) {return fail();}
-    //             if(lst.length === 0) {return fail();}
-    //             return ((fun(lst[0]))(lst.slice(1)))
-    //         }
-    //     }
-    // });
-    /*
-    As many other funs here, de-cons could be implemented in scheem directly:
-    (defun de-cons (lst fun fail)
-        (if (empty? lst) (fail) (fun (car lst) (cdr lst))))
-    <<------->>
-    some functions are now defined in stdlib.js,
-    in an orrible string.
-    */
-
-    // var primenv = bld.env();
-    // var stdlibds = desugar(stdlibast);
-    // evalScheem(stdlibds,primenv);
-    // console.log('initial environment',primenv);
-    // return primenv;
     return bld.env();
 };
 
-////PATTERN MATCHING MADNESS
-// we need to build identifiers on-the-fly
-var _id=0;
-var _identifier = function(str) {
-    var id = _id++;
-    var out = '=_gen_'+(id)+'_'+str;
-    return out;
-}
-
-// driver fun, takes a (match) expression
-// and returns a series on crazy nested if
-// and failure continuations
-var desugarMatch = function (expr) {
-    expr.shift(); //get rid of match
-
-    // discriminator expression
-    var discE = expr.shift();
-    // discriminator identifier
-    var discId = _identifier('disc');
-
-    var _collect = function(arr,idx) {
-        var out = [];
-        for (var i = 0; i < arr.length; i++) {
-            out[i] = arr[i][idx];
-        };
-        return out;
-    };
-    
-    var _desugarPatterns = function(ptns,ids,body,failId) {
-        if(ptns.length===0) {return body;}
-        var ptn = ptns.shift();
-        var id = ids.shift();
-        return _desugarPattern(ptn,id, _desugarPatterns(ptns,ids,body,failId),failId);
-    };
-    var _desugarPattern = function(ptn,discr,body,failId) {
-        // match everything, needs just the body
-        if(ptn==='_') {
-            return body;
-        }
-        // match everything, just bind the value to a variable
-        if((typeof ptn === 'string') && ptn[0] !== '#') {
-            return ['begin',['define',ptn,discr],body];
-        }
-        if(ptn instanceof Array) {
-            // quote is left as-is, = used for testing
-            if(ptn[0]==='quote') {
-                var eqOp = (ptn[1] instanceof Array) ? '=l' : '=';
-                return ['if',[eqOp,discr,ptn],body,[failId,'#nil']];
-            } else {
-                // otherwise, data-destructor must be used
-                // currently, only de-cons is defined (since we just have cons-cells)
-                var name = ptn.shift();
-                var ids = [];
-                var idsCopy = [];
-                for (var i = 0; i < ptn.length; i++) {
-                    ids[i] = _identifier('ptn');
-                    idsCopy[i] = ids[i];
-                };
-                // of course we can have sub-patterns in this case!
-                // that's what _desugarPatterns is for
-                return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
-            }
-        }
-        // otherwise is a constant value, = used for testing
-        return ['if',['=',discr,ptn],body,[failId,'#nil']];
-    };
-    var _desugarMatchClauses = function(ptns,bodies,discr) {
-        // last pattern is FAILURE!
-        if(ptns.length===0) {return ['error',['quote','no-match']];}
-        // get a new failure-continuation identifier
-        var failId = _identifier('fail');
-        var ptn = ptns.shift();
-        var body = bodies.shift();
-        /*
-        Tries to match the pattern, if fail calls <failId>
-        (begin
-            (define <failId> (lambda () <desugarMatchClauses>))
-            <desugarPattern>)*/
-        return ['begin',['define',failId,['lambda',[],_desugarMatchClauses(ptns,bodies,discr)]],
-        _desugarPattern(ptn,discr,body,failId)];
-    };
-
-    /*
-    (begin
-        (define <discId> <discE>)
-        <desugarMatchClauses>)
-    */
-    return ['begin',['define',discId,discE],_desugarMatchClauses(_collect(expr,0),_collect(expr,1),discId)];
-};
-var desugar = function (expr) {
-    if(expr instanceof Array) {
-        switch(expr[0]) {
-            case 'lambda-one':
-                return ['lambda-one',expr[1],desugar(expr[2])];
-            case 'lambda':
-                var formals = expr[1];
-                var formal = formals.shift();
-                if(formal===undefined) {formal = '_';}
-                if(formals.length>0) {
-                    return ['lambda-one',formal,desugar(['lambda',formals,expr[2]])];    
-                } else {
-                    return ['lambda-one',formal,desugar(expr[2])];
-                }
-            case 'quote': return expr;
-            case 'cond':
-                expr.shift();//get rid of cond
-                var cur = expr.shift();
-                var out = ['if',cur[0],cur[1]];
-                var tmp = out;
-                while(expr.length!==1) {
-                    cur = expr.shift();
-                    var branch = ['if',cur[0],cur[1]];
-                    tmp.push( branch );
-                    tmp = branch;
-                }
-                cur = expr.shift();
-                tmp.push(cur[1]);
-                return desugar(out);
-            case 'list':
-                expr.shift(); //get rid of 'list'
-                var out = ['cons',expr.pop(),['quote',[]]]
-                while(expr.length !== 0) {
-                    out = ['cons',expr.pop(),out];
-                }
-                return desugar(out);
-            case 'match':
-                return desugar(desugarMatch(expr));
-            case 'defun':
-                return desugar(['define',expr[1],['lambda',expr[2],expr[3]]]);
-            case 'define':
-                return ['define',expr[1],desugar(expr[2])];
-            case 'set!':
-                return ['set!',expr[1],desugar(expr[2])];
-            case 'if':
-                return ['if',desugar(expr[1]),desugar(expr[2]),desugar(expr[3])];
-            case 'begin':
-                var out = ['begin'];
-                for (var i = 1; i < expr.length; i++) {
-                    out[i] = desugar(expr[i]);
-                };
-                return out;
-            case '&':
-                return ['if',desugar(expr[1]),desugar(expr[2]),'#f'];
-            case '|':
-                return ['if',desugar(expr[1]),'#t',desugar(expr[2])];
-            case 'define*':
-                expr.shift();
-                var defs = [];
-                var sets = [];
-                for (var i = 0; i < expr.length; i++) {
-                    var cur = expr[i];
-                    defs[i] = ['define',cur[0],'#nil'];
-                    sets[i] = ['set!',cur[0],cur[1]];
-                };
-                return desugar(['begin'].concat(defs).concat(sets));
-            case 'defun*':
-                expr.shift();
-                var defs = [];
-                var sets = [];
-                for (var i = 0; i < expr.length; i++) {
-                    var cur = expr[i];
-                    defs[i] = ['define',cur[0],'#nil'];
-                    sets[i] = ['set!',cur[0],['lambda',cur[1],cur[2]]];
-                };
-                return desugar(['begin'].concat(defs).concat(sets));
-                return res;
-            default:
-                if(expr.length===1) {expr.push('#nil');}
-                var call = [desugar(expr.shift()),desugar(expr.shift())];
-                while(expr.length>0) {
-                    call = [call,desugar(expr.shift())];
-                }
-                return call;
-        }
-    } else {
-        return expr;
-    }
-}
-
 var evalScheem = function (expr, env) {
     if(env===undefined) {
+        //little trick to leave the standard bindings
+        //intact --damn define
         env = bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
     }
@@ -352,6 +153,25 @@ var evalScheem = function (expr, env) {
     switch (expr[0]) {
         case 'quote':
             return expr[1];
+        case 'quasiquote':
+            var unquote = function(v) {
+                if(v instanceof Array) {
+                    if(v[0]==='unquote') {
+                        return evalScheem(v[1],env);
+                    } else {
+                        var out = [];
+                        for (var i = 0; i < v.length; i++) {
+                            out[i] = unquote(v[i]);
+                        };
+                        return out;
+                    }
+                } else {
+                    return v;
+                }
+            };
+            return unquote(expr[1]);
+        case 'unquote':
+            return evalScheem(expr[1],env);
         case 'if':
             return (evalScheem(expr[1], env) === '#t') ?
                 evalScheem(expr[2], env) :
@@ -380,6 +200,10 @@ var evalScheem = function (expr, env) {
 };
 
 //
+//creates the standard library bindings
+//once and for all
+//evalScheem creates a fictional environment
+//to leave the original one intact
 var _stdlib = stdlib();
 evalScheem( desugar(stdlibast),_stdlib );
 //
@@ -387,4 +211,3 @@ evalScheem( desugar(stdlibast),_stdlib );
 module.exports.evalScheem = evalScheem;
 module.exports.desugar = desugar;
 module.exports.stdlib = _stdlib;
-//module.exports.reset = globalLib;

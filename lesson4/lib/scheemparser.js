@@ -16,8 +16,10 @@ module.exports = (function(){
         "expression": parse_expression,
         "integer": parse_integer,
         "list": parse_list,
+        "quasiquote": parse_quasiquote,
         "quote": parse_quote,
         "space": parse_space,
+        "unquote": parse_unquote,
         "validchar": parse_validchar
       };
       
@@ -324,19 +326,29 @@ module.exports = (function(){
         var savedPos1 = pos;
         var result3 = parse__();
         if (result3 !== null) {
-          var result8 = parse_list();
-          if (result8 !== null) {
-            var result4 = result8;
+          var result10 = parse_list();
+          if (result10 !== null) {
+            var result4 = result10;
           } else {
-            var result7 = parse_atom();
-            if (result7 !== null) {
-              var result4 = result7;
+            var result9 = parse_atom();
+            if (result9 !== null) {
+              var result4 = result9;
             } else {
-              var result6 = parse_quote();
-              if (result6 !== null) {
-                var result4 = result6;
+              var result8 = parse_quote();
+              if (result8 !== null) {
+                var result4 = result8;
               } else {
-                var result4 = null;;
+                var result7 = parse_quasiquote();
+                if (result7 !== null) {
+                  var result4 = result7;
+                } else {
+                  var result6 = parse_unquote();
+                  if (result6 !== null) {
+                    var result4 = result6;
+                  } else {
+                    var result4 = null;;
+                  };
+                };
               };
             };
           }
@@ -566,6 +578,108 @@ module.exports = (function(){
         }
         var result2 = result1 !== null
           ? (function(e) { return ['quote',e]; })(result1[1])
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_quasiquote() {
+        var cacheKey = 'quasiquote@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === "`") {
+          var result3 = "`";
+          pos += 1;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("\"`\"");
+          }
+        }
+        if (result3 !== null) {
+          var result4 = parse_expression();
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos1;
+        }
+        var result2 = result1 !== null
+          ? (function(e) { return ['quasiquote',e]; })(result1[1])
+          : null;
+        if (result2 !== null) {
+          var result0 = result2;
+        } else {
+          var result0 = null;
+          pos = savedPos0;
+        }
+        
+        
+        
+        cache[cacheKey] = {
+          nextPos: pos,
+          result:  result0
+        };
+        return result0;
+      }
+      
+      function parse_unquote() {
+        var cacheKey = 'unquote@' + pos;
+        var cachedResult = cache[cacheKey];
+        if (cachedResult) {
+          pos = cachedResult.nextPos;
+          return cachedResult.result;
+        }
+        
+        
+        var savedPos0 = pos;
+        var savedPos1 = pos;
+        if (input.substr(pos, 1) === ",") {
+          var result3 = ",";
+          pos += 1;
+        } else {
+          var result3 = null;
+          if (reportMatchFailures) {
+            matchFailed("\",\"");
+          }
+        }
+        if (result3 !== null) {
+          var result4 = parse_expression();
+          if (result4 !== null) {
+            var result1 = [result3, result4];
+          } else {
+            var result1 = null;
+            pos = savedPos1;
+          }
+        } else {
+          var result1 = null;
+          pos = savedPos1;
+        }
+        var result2 = result1 !== null
+          ? (function(e) { return ['unquote',e]; })(result1[1])
           : null;
         if (result2 !== null) {
           var result0 = result2;
