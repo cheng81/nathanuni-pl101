@@ -43,26 +43,43 @@
 		background-color: #efefef;
 	}
 </style>
-<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>
+<!--<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>-->
 <!--<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>-->
 
 <script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="../js/codemirror.js"></script>
 <script type="text/javascript" src="../js/scheme.js"></script>
 <script type="text/javascript">
+
 $(document).ready(function() {
-	var require = window.node2browser.require;
-	var scheem = require('scheem');
+	var toload = window.location.protocol==='file:' ?
+	"../../nathanuni-pl101/lesson5/dist/scheem.js" :
+	"https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js";
+	var head = document.getElementsByTagName('head')[0];
+	var script = document.createElement('script');
+	script.type = "text/javascript";
+
+	var require = null;
+	var scheem = null;
+	console.log('toload',toload);
+	script.onload = function() {
+		console.log('scheem loaded');
+		require = window.node2browser.require;
+		scheem = require('scheem');	
+	}
+	script.src = toload;
+	head.appendChild(script);
+
 
 	var srcArea = $('textarea#source')[0];
 	var outDiv = $('div#result');
 
 	var lastChange = -1;
-	var myCodeMirror = CodeMirror.fromTextArea(srcArea, {
-		lineNumbers: true,
-		theme: 'monokai',
-		onChange: function() {
-			try {
+	var eventualEval = function() {
+		if(lastChange>0) {window.clearTimeout(lastChange);}
+		lastChange = window.setTimeout(function() {
+			console.log('goeval');
+//			try {
 				var out = scheem.make(myCodeMirror.getValue());
 				var html = '';
 				if(out.result) {
@@ -72,7 +89,14 @@ $(document).ready(function() {
 					html = out.error.name + ':' + out.error.message;
 				}
 				$(outDiv).html(html);
-			} catch(e) {console.log(e);}
+//			} catch(e) {console.log(e);}		
+		},1500);
+	};
+	var myCodeMirror = CodeMirror.fromTextArea(srcArea, {
+		lineNumbers: true,
+		theme: 'monokai',
+		onChange: function() {
+			eventualEval();
 		}
 	});
 
@@ -119,22 +143,64 @@ $(document).ready(function() {
 (define plus5 (plusser 5))
 (define plus1 (plusser 1))
 (plus5 (plus1 3))</div>
-	<div id="fibonacci">(defun fib (n)
+	<div id="fibonacci">;;demostration of some sugaring stuff
+
+;;first, no sugar at all,
+;;plain define+lambda+nested if
+(define fibns
+  (lambda (n)
+    (if (= n 0)
+        1
+        (if (= n 1)
+            1
+            (+ 
+             (fibns (- n 1)) 
+             (fibns (- n 2)))))))
+
+;;let's improve,
+;;defun is a sugar
+;;(defun <name> <args> <body>)
+;;(define <name> (lambda <args> <body>))
+;;cond is also sugar, that basically boils down
+;;to a nested if
+;;(cond (<c1> <b1>)...(else <b_n>))
+;;(if <b1> <c1> (if <b2> <c2> (... (if <c_n-1> <b_n-1> <b_n>)) ))
+(defun fibc (n)
+       (cond
+        ((= n 0) 1)
+        ((= n 1) 1)
+        (else (+ 
+               (fibc (- n 1)) 
+               (fibc (- n 2))))))
+
+;;let's try something different
+;;but I'll not explain the match
+;;construct..it's a bit of a mess
+(defun fibm (n)
        (match n
               (0 1)
               (1 1)
               (x (+ 
-                  (fib (- x 1)) 
-                  (fib (- x 2))))))
+                  (fibm (- x 1)) 
+                  (fibm (- x 2))))))
 
-(fib 5)</div>
-	<div id="lookup-env">(define lookup
-  (lambda (key dict)
-    (if (= key (car dict))
-        (car (cdr dict))
-        (lookup key (car (cdr (cdr dict)))))))
+(list (fibns 5) (fibc 5) (fibm 5))</div>
+	<div id="lookup-env">(defun*
+ (lookup (key dict)
+         (cond
+          ((empty? dict) (error 'empty-dict))
+          ((= key (car dict)) (nth 1 dict))
+          (else (lookup key (nth 2 dict)))))
+ (insert (key value dict)
+         (list key value dict)))
 
-(lookup 'foo '(bar 5 (foo 10)))</div>
+(define d '())
+(set! d (insert 'foo 5 d))
+(set! d (insert 'bar 5 d))
+(define foo1 (lookup 'foo d))
+(set! d (insert 'foo 10 d))
+(define foo2 (lookup 'foo d))
+(list foo1 foo2)</div>
 	<div id="fold">(defun empty? (x)
        (=l x '()))
 
@@ -144,72 +210,29 @@ $(document).ready(function() {
               ( _ accum)))
 
 (fold + 0 '(1 2 3 4))</div>
-	<div id="stdlib">(defun id (x _) x)
+	<div id="stdlib">;; functions defined in std library
+;; there is also de-cons, but that's
+;; used in the context of pattern matching
+(list
+ ((id 5))
+ (empty? '())
+ (empty? '(1 2))
+ (map (* 2) '(1 2 3))
+ (reverse '(1 2 3))
+ (append '(1 2) '(3 4))
+ (nth 1 '(a b c))
+ (match '(1 2)
+        ( (cons x xs) x) ;;here, cons is de-sugard to a call to de-cons(list continuation failure) function
+        ( '() 'empty)))</div>
+	<div id="mutual-recursive">(defun*
+ (even? (x) (if (= x 0) #t (odd? (- x 1))))
+ (odd?  (x) (if (= x 0) #f (even? (- x 1)))))
 
-(defun empty? (lst) (=l lst '()))
+(defun countEven (lst)
+       (fold + 0 (map (lambda (x) (if x 1 0)) (map even? lst))))
 
-(defun map (fn lst)
-	(match lst
-		( (cons x xs) (cons (fn x) (map fn xs)) )
-		( _ '())))
-
-(defun fold (fn accum lst)
-	(match lst
-		( (cons x xs) (fold fn (fn accum x) xs) )
-		( _ accum )))
-
-(defun append (l1 l2)
-	(begin
-		(define tmp l2)
-		(defun app (l)
-			(match l
-				( (cons x xs) (
-				begin
-					(define el x)
-					(app xs)
-					(set! tmp (cons el tmp))))
-				( _ tmp )))
-		(app l1)
-		(id tmp #nil)))
-
-(defun reverse (lst)
-	(begin
-		(defun rev (l1 l2)
-			(match l1
-				( (cons x xs) (rev xs (cons x l2)) )
-				( _ l2)))
-		(rev lst '())))
-
-(defun append (l1 l2)
-	(begin
-		(defun app (l accum)
-			(match l
-				( (cons x xs) (app xs (cons x accum)) )
-				( _ accum ) ))
-		(app (reverse l1) l2)))
-
-
-(defun nth (i lst)
-	(if (= 0 i)
-		(car lst)
-		(nth (- i 1) (cdr lst))))
-
-
-(append '(1 2) '(3 4 5))</div>
-	<div id="expr-eval">(defun empty? (lst) (=l lst '()))
-
-(defun fold (fn accum lst)
-	(match lst
-		( (cons x xs) (fold fn (fn accum x) xs) )
-		( _ accum )))
-
-(defun nth (idx lst) 
-	(match idx
-		( 0 (car lst) )
-		( n (nth (- n 1) (cdr lst)) )
-		))
-
-(defun lookup (k env)
+(countEven '(1 2 3 4 5 6 7 8))</div>
+	<div id="expr-eval">(defun lookup (k env)
 	(if (empty? env)
 			(error 'undef-val)
 			(if (= k (nth 0 env))
