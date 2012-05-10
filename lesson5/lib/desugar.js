@@ -50,7 +50,10 @@ var desugarMatch = function (expr) {
                 };
                 // of course we can have sub-patterns in this case!
                 // that's what _desugarPatterns is for
-                return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
+                // (de-<name> discrI (lambda (i1...in) body) failI)
+                // update: should really pass the length of the patterns..
+                // (de-name discrI ptnlen (lambda (li1...in) body) failI)
+                return ['de-'+name,discr,ptn.length,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
             }
         }
         // otherwise is a constant value, = used for testing
@@ -158,6 +161,22 @@ var desugar = function (expr) {
                 };
                 return desugar(['begin'].concat(defs).concat(sets));
                 return res;
+            case 'let':
+                return ['let',desugar(expr[1]),desugar(expr[2])];
+            case 'let*':
+                expr.shift();//get rid of cond
+                var cur = expr.shift();
+                var out = ['let',cur];
+                var tmp = out;
+                while(expr.length!==1) {
+                    cur = expr.shift();
+                    var branch = ['let',cur];
+                    tmp.push( branch );
+                    tmp = branch;
+                }
+                cur = expr.shift();
+                tmp.push(cur);
+                return desugar(out);
             default:
                 if(expr.length===1) {expr.push('#nil');}
                 var call = [desugar(expr.shift()),desugar(expr.shift())];

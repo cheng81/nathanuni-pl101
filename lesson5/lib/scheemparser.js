@@ -369,7 +369,7 @@ module.exports = (function(){
           pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(e) { return e })(result1[1])
+          ? (function(e) { return e; })(result1[1])
           : null;
         if (result2 !== null) {
           var result0 = result2;

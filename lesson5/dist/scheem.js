@@ -492,7 +492,7 @@ module.exports = (function(){
           pos = savedPos1;
         }
         var result2 = result1 !== null
-          ? (function(e) { return e })(result1[1])
+          ? (function(e) { return e; })(result1[1])
           : null;
         if (result2 !== null) {
           var result0 = result2;
@@ -1089,7 +1089,10 @@ var desugarMatch = function (expr) {
                 };
                 // of course we can have sub-patterns in this case!
                 // that's what _desugarPatterns is for
-                return ['de-'+name,discr,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
+                // (de-<name> discrI (lambda (i1...in) body) failI)
+                // update: should really pass the length of the patterns..
+                // (de-name discrI ptnlen (lambda (li1...in) body) failI)
+                return ['de-'+name,discr,ptn.length,['lambda',ids,_desugarPatterns(ptn,idsCopy,body,failId)],failId];
             }
         }
         // otherwise is a constant value, = used for testing
@@ -1197,6 +1200,22 @@ var desugar = function (expr) {
                 };
                 return desugar(['begin'].concat(defs).concat(sets));
                 return res;
+            case 'let':
+                return ['let',desugar(expr[1]),desugar(expr[2])];
+            case 'let*':
+                expr.shift();//get rid of cond
+                var cur = expr.shift();
+                var out = ['let',cur];
+                var tmp = out;
+                while(expr.length!==1) {
+                    cur = expr.shift();
+                    var branch = ['let',cur];
+                    tmp.push( branch );
+                    tmp = branch;
+                }
+                cur = expr.shift();
+                tmp.push(cur);
+                return desugar(out);
             default:
                 if(expr.length===1) {expr.push('#nil');}
                 var call = [desugar(expr.shift()),desugar(expr.shift())];
@@ -1241,6 +1260,10 @@ var src = "\
 (defun*\
 	(id (x _) x)\
 	(empty? (lst) (=l '() lst))\
+	(length (lst)\
+		(begin\
+		(defun fn (rest counter) (if (empty? rest) counter (fn (cdr rest) (+ 1 counter))))\
+		(fn lst 0)))\
 	(fold (fn accum lst)\
 		(match lst\
 			( (cons x xs) (fold fn (fn accum x) xs) )\
@@ -1249,13 +1272,36 @@ var src = "\
 		(match lst\
 			( (cons x xs) (cons (fn x) (map fn xs)) )\
 			( '() '() )))\
+	(each (fn lst)\
+		(match lst\
+			( (cons x xs) (begin (fn x) (each fn xs)) )\
+			( '() #nil )))\
+	(apply (fn arg) (fn arg))\
 	(reverse (lst)\
 		(fold (lambda (acc el) (cons el acc)) '() lst))\
 	(append (l1 l2)\
 		(fold (lambda (acc el) (cons el acc)) l2 (reverse l1)))\
-	(de-cons (lst fn fail)\
-		(if (list? lst)\
-			(if (empty? lst) (fail) (fn (car lst) (cdr lst)))\
+	(filter (pred lst)\
+		(reverse (fold (lambda (accum elm) (if (pred elm) (cons elm accum) accum)) '() lst)))\
+	(de-cons (lst len cont fail)\
+		(if (& (list? lst) (<= (- len 1) (length lst)))\
+			(let\
+				(counter 0)\
+				(begin\
+				(defun fn ()\
+					(if (= counter (- len 1))\
+						(cont lst)\
+						(begin\
+						(set! counter (+ counter 1))\
+						(set! cont (cont (car lst)))\
+						(set! lst (cdr lst))\
+						(fn)\
+					)))\
+				(fn)))\
+			(fail)))\
+	(de-tuple (tuple len cont fail)\
+		(if (& (list? tuple) (= len (length tuple)))\
+			(fold apply cont tuple)\
 			(fail)))\
 	(nth (i lst)\
 		(if (= i 0)\
@@ -1268,6 +1314,13 @@ var src = "\
 )";
 
 module.exports.stdlibast = parser.parse(src);
+
+/*
+	(de-cons (lst _len fn fail)\
+		(if (list? lst)\
+			(if (empty? lst) (fail) (fn (car lst) (cdr lst)))\
+			(fail)))\
+*/
 /*---------------------------------------------------*/
 
 	}
@@ -1399,6 +1452,9 @@ var stdlib = function() {
     .add('list?',function(x) {
         return (x instanceof Array) ? '#t':'#f';
     })
+    .add('lambda?',function(x) {
+        return ((x instanceof Function) || (x instanceof Object && ('body' in x && 'arg' in x && 'env' in x))) ? '#t':'#f';
+    })
     .add('cons',function(x) {return function(y) {
         if(!(y instanceof Array)) {throw new Error('cons expect a list as second argument')}
         return [x].concat(y);}
@@ -1427,11 +1483,14 @@ var stdlib = function() {
     return bld.env();
 };
 
+var ensure = function(env) {
+    return bind(env,'£ohoh','#nil');
+};
 var evalScheem = function (expr, env) {
     if(env===undefined) {
         //little trick to leave the standard bindings
         //intact --damn define
-        env = bind(_stdlib,'(_impossibru)','#nil');
+        env = ensure(_stdlib); //bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
     }
 
@@ -1465,7 +1524,7 @@ var evalScheem = function (expr, env) {
             };
             return unquote(expr[1]);
         case 'unquote':
-            return evalScheem(expr[1],env);
+            throw new Error('Unquote can appear only in a semiquote expression');
         case 'if':
             return (evalScheem(expr[1], env) === '#t') ?
                 evalScheem(expr[2], env) :
@@ -1482,14 +1541,27 @@ var evalScheem = function (expr, env) {
                 res = evalScheem(expr[i], env);
             };
             return res;
+        case 'let':
+            return evalScheem(expr[2], bind(env,expr[1][0], evalScheem(expr[1][1],env)));
         case 'lambda-one':
-            return function(_arg) {
-                return evalScheem(expr[2], bind(env,expr[1],_arg));
+            return {
+                body: expr[2],
+                arg: expr[1],
+                env: ensure(env)
             };
+            // return function(_arg) {
+            //     return evalScheem(expr[2], bind(env,expr[1],_arg));
+            // };
         default:
             var fun = evalScheem(expr[0],env);
             var arg = evalScheem(expr[1],env);
-            return fun(arg);
+            // console.log('app',fun,arg);
+            // return fun(arg);
+            if(fun instanceof Function) {
+                //primitive function application..how troublesome!
+                return fun(arg);
+            }
+            return evalScheem(fun.body,bind(fun.env,fun.arg,arg));
     }
 };
 

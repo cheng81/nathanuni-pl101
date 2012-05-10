@@ -105,6 +105,9 @@ var stdlib = function() {
     .add('list?',function(x) {
         return (x instanceof Array) ? '#t':'#f';
     })
+    .add('lambda?',function(x) {
+        return ((x instanceof Function) || (x instanceof Object && ('body' in x && 'arg' in x && 'env' in x))) ? '#t':'#f';
+    })
     .add('cons',function(x) {return function(y) {
         if(!(y instanceof Array)) {throw new Error('cons expect a list as second argument')}
         return [x].concat(y);}
@@ -133,11 +136,14 @@ var stdlib = function() {
     return bld.env();
 };
 
+var ensure = function(env) {
+    return bind(env,'£ohoh','#nil');
+};
 var evalScheem = function (expr, env) {
     if(env===undefined) {
         //little trick to leave the standard bindings
         //intact --damn define
-        env = bind(_stdlib,'(_impossibru)','#nil');
+        env = ensure(_stdlib); //bind(_stdlib,'(_impossibru)','#nil');
         expr = desugar(expr);
     }
 
@@ -171,7 +177,7 @@ var evalScheem = function (expr, env) {
             };
             return unquote(expr[1]);
         case 'unquote':
-            return evalScheem(expr[1],env);
+            throw new Error('Unquote can appear only in a semiquote expression');
         case 'if':
             return (evalScheem(expr[1], env) === '#t') ?
                 evalScheem(expr[2], env) :
@@ -188,14 +194,27 @@ var evalScheem = function (expr, env) {
                 res = evalScheem(expr[i], env);
             };
             return res;
+        case 'let':
+            return evalScheem(expr[2], bind(env,expr[1][0], evalScheem(expr[1][1],env)));
         case 'lambda-one':
-            return function(_arg) {
-                return evalScheem(expr[2], bind(env,expr[1],_arg));
+            return {
+                body: expr[2],
+                arg: expr[1],
+                env: ensure(env)
             };
+            // return function(_arg) {
+            //     return evalScheem(expr[2], bind(env,expr[1],_arg));
+            // };
         default:
             var fun = evalScheem(expr[0],env);
             var arg = evalScheem(expr[1],env);
-            return fun(arg);
+            // console.log('app',fun,arg);
+            // return fun(arg);
+            if(fun instanceof Function) {
+                //primitive function application..how troublesome!
+                return fun(arg);
+            }
+            return evalScheem(fun.body,bind(fun.env,fun.arg,arg));
     }
 };
 
