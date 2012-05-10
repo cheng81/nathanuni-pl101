@@ -42,6 +42,12 @@
 		margin-left: 1em;
 		background-color: #efefef;
 	}
+	.CodeMirror-scroll {
+		height: auto;
+		overflow-y: hidden;
+		overflow-x: auto;
+		width: 100%
+	}
 </style>
 <!--<script type="text/javascript" src="https://raw.github.com/cheng81/nathanuni-pl101/master/lesson5/dist/scheem.js"></script>-->
 <!--<script type="text/javascript" src="../../nathanuni-pl101/lesson5/dist/scheem.js"></script>-->
@@ -232,46 +238,82 @@ $(document).ready(function() {
        (fold + 0 (map (lambda (x) (if x 1 0)) (map even? lst))))
 
 (countEven '(1 2 3 4 5 6 7 8))</div>
-	<div id="expr-eval">(defun lookup (k env)
-	(if (empty? env)
-			(error 'undef-val)
-			(if (= k (nth 0 env))
-				(nth 1 env)
-				(lookup k (nth 2 env)))))
+	<div id="church-numerals">(defun*
+(as-decimal (n) (n (+ 1) 0))
+(zero (f x) x)
+(succ (n) (lambda (f x) (f (n f x))))
+(plus (m n) (lambda (f x) (m f (n f x))))
+(mult (m n) (lambda (f x) (n (lambda (a) (m f a)) x)))
+(pred (n)
+    (lambda (f x)
+        ((n (lambda (g) (lambda (h) (h (g f)))) (lambda (u) x))
+        (lambda (u) u))))
+(sub (m n) (n pred m))
+(from-decimal (n)
+    (begin
+    (defun fd (n1 c)
+        (if (= n1 0)
+            c
+            (fd (- n1 1) (succ c))))
+    (fd n zero)))
+)
 
-(defun define-env (env k v)
-	(list k v env))
+(define*
+(one (succ zero))
+(two (succ one))
+(three (succ two))
+)
 
-(defun eval (expr env)
-	(begin
-	(cond
-		( (int? expr) expr )
-		( (bool? expr) expr )
-		( (sym? expr) (lookup expr env) )
-		( else
-			(match (car expr)
-				( '+ (+ (eval (nth 1 expr) env) (eval (nth 2 expr) env)) )
-                ( '= (= (eval (nth 1 expr) env) (eval (nth 2 expr) env)) )
-				( 'if (if (eval (nth 1 expr) env)
-					(eval (nth 2 expr) env)
-					(eval (nth 3 expr) env) ) )
-				( 'let (eval (nth 2 expr) (define-env env (nth 0 (nth 1 expr)) (eval (nth 1 (nth 1 expr)) env))) )
-				( 'begin (fold (lambda (_res sub) (eval sub env)) 0 (cdr expr)))
-				( 'alert (alert (eval (nth 1 expr) env)) )
-                ( 'abs (lambda (arg) (eval (nth 2 expr) (define-env env (nth 1 expr) arg))) )
-				( _ (begin
-                     (define fn (eval (nth 0 expr) env))
-                     (define arg (eval (nth 1 expr) env))
-                     (fn arg)) )
-			) )
-		)))
+(as-decimal (sub (from-decimal 10) (from-decimal 5)))</div>
+	<div id="expr-eval">(defun*
+	(lookup (k env)
+		(match env
+			((cons name value rest)	
+				(if (= name k) value (lookup k rest)))
+			( '() (error `(undef-val ,k)) )))
+	(define-env (env k v) (list k v env))
+	(eval (env expr)
+		(let* (ev (eval env)) (def (define-env env))
+		(cond
+			( (| (int? expr) (bool? expr)) expr )
+			( (sym? expr) (lookup expr env) )
+			(else (match expr
+				( (cons 'begin exprs)                  (fold (lambda (_res sub) (ev sub)) 0 exprs) )
+				( (tuple '+ a b)                       (+ (ev a) (ev b)) )
+				( (tuple '= a b)                       (= (ev a) (ev b)) )
+				( (tuple 'if test ok ko)               (if (ev test) (ev ok) (ev ko)) )
+				( (tuple 'let (tuple name lexpr) body) (eval (def name (ev lexpr)) body) )
+				( (tuple 'alert expr)                  (alert (ev expr)) )
+				( (tuple 'abs argi body)               (lambda (arg) (eval (def argi arg) body)) )
+				( (tuple fun arg)                      ((ev fun) (ev arg)) )
+				( e                                    (alert `(unknown-expression ,e)) )
+				)))))
+)
 
 (eval
+'()
 '(begin
 	(let (plus1 (abs x (+ 1 x)))
-	(plus1 10)))
-'())
-</div>
+	(plus1 10))))</div>
+	<div id="unit-test">(defun*
+	(suite (name tests)
+		(begin
+		(defun runner (test)
+			(match test
+				((tuple result expect name)
+					(if (= result expect)
+						`(,name ok)
+						`(,name ko expected ,expect but got ,result)))))
+		(alert '---suite---)
+		(alert name)
+		(each alert (map runner tests))
+		))
+	(is (name act exp) (list act exp name)))
+
+(suite 'arithmetic (list
+(is 'addition (+ 1 1) 2)
+(is 'mult (* 1 1) 2)
+))</div>
 </div>
 </body>
 </html>
