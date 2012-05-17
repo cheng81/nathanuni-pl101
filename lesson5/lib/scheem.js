@@ -122,6 +122,23 @@ var stdlib = function() {
         if(x.length===0) {throw new Error('Cannot extract tail of empty list');}
         return x.slice(1);
     })
+    .add('setx!',function(idx) {
+        return function(value) {
+            return function(lst) {
+                if(!(lst instanceof Array)) {
+                    throw new Error('setx! expect a list as last argument');
+                }
+                if(idx<0) {
+                    throw new Error('setx! expect a positive integer as first argument');
+                }
+                if(idx>=lst.length) {
+                    throw new Error('setx! wrong argument: cannot change index '+idx+' of a '+lst.length+'-size list');
+                }
+                lst[idx] = value;
+                return lst;
+            }
+        }
+    })
     .add('alert',function(x) {
         if(typeof alert !== 'undefined') {
             alert(x);
@@ -139,6 +156,120 @@ var stdlib = function() {
 var ensure = function(env) {
     return bind(env,'£ohoh','#nil');
 };
+
+var evalScheemCPS = function(expr, cont, env) {
+    if(env===undefined) {
+        env = ensure(_stdlib);
+        expr = desugar(expr);
+    }
+    console.log('evalCPS',expr);
+
+    if (typeof expr === 'number') {
+        cont(expr);
+    }
+    if (typeof expr === 'string') {
+        if (expr==='#t'||expr==='#f'||expr==='#nil') {cont(expr);}
+        cont(lookup(env,expr));
+    }
+
+    switch(expr[0]) {
+        case 'quote':
+            cont(expr[1]); break;
+        case 'quasiquote':
+            var unquote = function(v,cnt) {
+                console.log('unquote?',v);
+                if(v instanceof Array) {
+                    if(v[0]==='unquote') {
+                        console.log('unuote',v[1]);
+                        evalScheemCPS(v[1],cnt,env);
+                    } else {
+
+                        var val = [];
+                        var counter = 0;
+                        var cnt1 = function(cur) {
+                            val.push(cur);
+                            counter++;
+                            if(counter===v.length) {
+                                cnt(val);
+                            } else {
+                                unquote(v[counter],cnt1);
+                                //evalScheemCPS(v[counter],cnt1,env);
+                            }
+                        };
+                        unquote(v[0],cnt1,env);
+                    }
+                } else {
+                    cnt(v);
+                }
+            };
+            unquote(expr[1],cont); break;
+        case 'unquote': throw new Error('Unquote can appear only in a semiquote expression');
+        case 'if':
+            evalScheemCPS(expr[1],function(val) {
+                if(val==='#t') {
+                    evalScheemCPS(expr[2],cont,env);
+                } else {
+                    evalScheemCPS(expr[3],cont,env);
+                }
+            },env);
+            break;
+        case 'define':
+            add_binding(env,expr[1],'#nil');
+            evalScheemCPS(expr[2],function(val) {
+                update(env,expr[1],val);
+                cont(0);
+            },env);
+            break;
+        case 'set!':
+            evalScheemCPS(expr[2],function(val) {
+                update(env,expr[1],val);
+                cont(0);
+            },env);
+            break;
+        case 'begin':
+            var counter = 1;
+            var cnt = function(val) {
+                counter++;
+                if(counter===expr.length) {cont(val);}
+                else {evalScheemCPS(expr[counter],cnt,env);}
+            };
+            evalScheemCPS(expr[1],cnt,env);
+            break;
+        case 'label':
+            evalScheemCPS(expr[2],cont,bind(env,expr[1],{cont:cont,env:env}));
+            break;
+        case 'jump':
+            var jmpObj = lookup(expr[1]);
+            evalScheemCPS(expr[2],function(val) {
+                jmpObj.cont(val);
+            },jmpObj.env);
+        case 'let':
+            evalScheemCPS(expr[1][1],function(val) {
+                evalScheemCPS(expr[2],cont,bind(env,expr[1][0],val));
+            },env);
+            break;
+        case 'lambda-one':
+            cont({
+                body: expr[2],
+                arg: expr[1],
+                env: ensure(env)
+            });
+        default:
+            evalScheemCPS(expr[0],function(fun) {
+                evalScheemCPS(expr[1],function(arg) {
+                    if(fun instanceof Function) {
+                        cont(fun(arg));
+                    } else {
+                        evalScheemCPS(fun.body,function(res) {
+                            cont(res);
+                        }, bind(fun.env,fun.arg,arg));
+                    }
+                },env);
+            },env);
+            break;
+    }
+}
+
 var evalScheem = function (expr, env) {
     if(env===undefined) {
         //little trick to leave the standard bindings
@@ -228,5 +359,6 @@ evalScheem( desugar(stdlibast),_stdlib );
 //
 
 module.exports.evalScheem = evalScheem;
+module.exports.evalScheemCPS = evalScheemCPS;
 module.exports.desugar = desugar;
 module.exports.stdlib = _stdlib;
