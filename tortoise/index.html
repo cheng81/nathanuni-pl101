@@ -177,13 +177,22 @@ define tri(n) {
   pop();
 }
 
-var numIterations;
-numIterations := 4;
+define iteration(num) {
+  push();
+  right(90);
+    stroke((numIter+1)-num);
+  scale(500);
+  move(0.5, -0.5);
+  tri(num);
+    pop();
+    home();
+    if(num > 1) {
+      iteration(num-1);
+    }
+}
 
-right(90);
-scale(500);
-move(0.5, -0.5);
-tri(numIterations);</div>
+var numIter := 5;
+iteration(numIter);</div>
 </div>
 
 </body>
