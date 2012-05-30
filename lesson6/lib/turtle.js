@@ -62,10 +62,17 @@ Turtle.prototype.updateTurtle = function() {
 Turtle.prototype.drawTo = function(x,y) {
 	var x1 = this.top().x
 	  , y1 = this.top().y
-	  , params = this.top().stroke; //{ 'stroke-width': this.top().stroke.width };
+	  , params = this.top().stroke;
+	  // , aniparams = clone(this.top().stroke); //{ 'stroke-width': this.top().stroke.width };
 
 	this.paper.path(Raphael.format("M{0},{1}L{2},{3}",
 		x1,y1,x,y)).attr(params);
+
+	// var params = { "stroke-width": aniparams["stroke-width"], path:Raphael.format("M{0},{1}", x1, y1) };
+	// aniparams.path = Raphael.format("M{0},{1}L{2},{3}", x1, y1, x, y);
+	// var path = this.paper.path().attr(params);
+	// var speed = Math.sqrt( (x1 - x) + (y1 - y) );
+ //    path.animateWith(this.turtleimg, false, aniparams, speed, "linear");
 };
 Turtle.prototype.forward = function(d) {
 	d *= this.top().scale;
@@ -110,6 +117,9 @@ Turtle.prototype.stroke = function(w) {
 };
 Turtle.prototype.scale = function(s) {
 	this.top().scale *= s;
+};
+Turtle.prototype.strokeScale = function(s) {
+	this.top().stroke['stroke-width'] *= s;
 };
 
 module.exports.Turtle = Turtle;

@@ -30,7 +30,9 @@ comment =
 	'//' (![\n\r] c:.)* / '/*' (!'*/' c:.)+ '*/'
 
 expression =
-	expr:logical
+	expr:logical _ '?' _ ok:expression _ ':' _ ko:expression _
+	{ return {tag:'inline-if',test:test, left:ok, right:ko}; }
+	/ expr:logical
 	{ return expr; }
 
 logic_op = '&&' / '||'
@@ -73,7 +75,7 @@ exponential =
 primary =
 	number
 	/ boolean
-//	/ test:expression _ '?' _ ok:expression _ ':' _ ko:expression _
+//	/ test:logical _ '?' _ ok:expression _ ':' _ ko:expression _
 //	{ return {tag:'inline-if',test:test, left:ok, right:ko}; }
 	/ v:identifier "(" _ ")"
 	{ return {tag:"call", name:v, args:[]}; }

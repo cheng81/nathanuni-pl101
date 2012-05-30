@@ -844,16 +844,113 @@ module.exports = (function(){
         }
         
         
-        var savedPos0 = pos;
-        var result1 = parse_logical();
-        var result2 = result1 !== null
-          ? (function(expr) { return expr; })(result1)
-          : null;
-        if (result2 !== null) {
-          var result0 = result2;
+        var savedPos1 = pos;
+        var savedPos2 = pos;
+        var result7 = parse_logical();
+        if (result7 !== null) {
+          var result8 = parse__();
+          if (result8 !== null) {
+            if (input.substr(pos, 1) === "?") {
+              var result9 = "?";
+              pos += 1;
+            } else {
+              var result9 = null;
+              if (reportMatchFailures) {
+                matchFailed("\"?\"");
+              }
+            }
+            if (result9 !== null) {
+              var result10 = parse__();
+              if (result10 !== null) {
+                var result11 = parse_expression();
+                if (result11 !== null) {
+                  var result12 = parse__();
+                  if (result12 !== null) {
+                    if (input.substr(pos, 1) === ":") {
+                      var result13 = ":";
+                      pos += 1;
+                    } else {
+                      var result13 = null;
+                      if (reportMatchFailures) {
+                        matchFailed("\":\"");
+                      }
+                    }
+                    if (result13 !== null) {
+                      var result14 = parse__();
+                      if (result14 !== null) {
+                        var result15 = parse_expression();
+                        if (result15 !== null) {
+                          var result16 = parse__();
+                          if (result16 !== null) {
+                            var result5 = [result7, result8, result9, result10, result11, result12, result13, result14, result15, result16];
+                          } else {
+                            var result5 = null;
+                            pos = savedPos2;
+                          }
+                        } else {
+                          var result5 = null;
+                          pos = savedPos2;
+                        }
+                      } else {
+                        var result5 = null;
+                        pos = savedPos2;
+                      }
+                    } else {
+                      var result5 = null;
+                      pos = savedPos2;
+                    }
+                  } else {
+                    var result5 = null;
+                    pos = savedPos2;
+                  }
+                } else {
+                  var result5 = null;
+                  pos = savedPos2;
+                }
+              } else {
+                var result5 = null;
+                pos = savedPos2;
+              }
+            } else {
+              var result5 = null;
+              pos = savedPos2;
+            }
+          } else {
+            var result5 = null;
+            pos = savedPos2;
+          }
         } else {
-          var result0 = null;
-          pos = savedPos0;
+          var result5 = null;
+          pos = savedPos2;
+        }
+        var result6 = result5 !== null
+          ? (function(expr, ok, ko) { return {tag:'inline-if',test:test, left:ok, right:ko}; })(result5[0], result5[4], result5[8])
+          : null;
+        if (result6 !== null) {
+          var result4 = result6;
+        } else {
+          var result4 = null;
+          pos = savedPos1;
+        }
+        if (result4 !== null) {
+          var result0 = result4;
+        } else {
+          var savedPos0 = pos;
+          var result2 = parse_logical();
+          var result3 = result2 !== null
+            ? (function(expr) { return expr; })(result2)
+            : null;
+          if (result3 !== null) {
+            var result1 = result3;
+          } else {
+            var result1 = null;
+            pos = savedPos0;
+          }
+          if (result1 !== null) {
+            var result0 = result1;
+          } else {
+            var result0 = null;;
+          };
         }
         
         

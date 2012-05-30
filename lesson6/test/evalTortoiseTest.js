@@ -186,6 +186,9 @@ suite('evalExpression', function() {
 		eq(evalExpr('!false'),true);
 		eq(evalExpr('1 > 3 || (true && ! 1 > 3)'),true);
 	});
+	test('inline-if', function() {
+		eq(evalExpr('1 > 2 ? true : false'),false);
+	});
 });
 
 suite('evalStatement', function() {
