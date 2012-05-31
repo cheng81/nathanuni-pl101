@@ -31,7 +31,7 @@ comment =
 
 expression =
 	expr:logical _ '?' _ ok:expression _ ':' _ ko:expression _
-	{ return {tag:'inline-if',test:test, left:ok, right:ko}; }
+	{ return {tag:'inline-if',test:expr, left:ok, right:ko}; }
 	/ expr:logical
 	{ return expr; }
 

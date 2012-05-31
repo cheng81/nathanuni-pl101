@@ -49,7 +49,7 @@ var ast = function(text,rule) {
 }
 var eval = function(text) {
 	var ast = tortoise.parser.parse(text);
-	console.log('ast',util.inspect(ast,false,100));
+	// console.log('ast',util.inspect(ast,false,100));
 	return tortoise.interpreter.evalStatements(ast,env);
 }
 var evalExpr = function(text) {
@@ -188,6 +188,8 @@ suite('evalExpression', function() {
 	});
 	test('inline-if', function() {
 		eq(evalExpr('1 > 2 ? true : false'),false);
+		eq(evalExpr('1 < 2 ? true : false'),true);
+		eq(evalExpr('1>2 ? 1 : 1<2 ? 2 : 3'),2);
 	});
 });
 

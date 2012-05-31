@@ -924,7 +924,7 @@ module.exports = (function(){
           pos = savedPos2;
         }
         var result6 = result5 !== null
-          ? (function(expr, ok, ko) { return {tag:'inline-if',test:test, left:ok, right:ko}; })(result5[0], result5[4], result5[8])
+          ? (function(expr, ok, ko) { return {tag:'inline-if',test:expr, left:ok, right:ko}; })(result5[0], result5[4], result5[8])
           : null;
         if (result6 !== null) {
           var result4 = result6;
