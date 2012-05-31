@@ -280,16 +280,9 @@ var evalStatement = function(stmt, env, cont, xcont) {
 			return thunk(cont);
 		case 'with':
 			return thunk(evalExpr, stmt.expr, env, function(turtle) {
-				// if(env.bindings['_turtle_'] !== undefined) {
-					// return thunk(xcont,new Error('Cannot use with within with!'));
-				// }
-				console.log('with block',turtle);
 				var new_env = env;//{bindings:{}, outer:env};
-				// add_binding(new_env, '_turtle_', turtle);
 				for(var i in turtle) {
 					if(turtle[i] instanceof Function) {
-						console.log('bind function turtle.'+i);
-						//var bound = turtle[i].bind(turtle);
 						(function(name) {
 							var bound = function() {
 								// console.log('called',stmt.expr,name);

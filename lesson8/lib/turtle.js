@@ -21,12 +21,12 @@ var Turtle = function(raphael, w, h, t) {
 	this.state = [];
 	this.clear();
 	if(t!==undefined) {
-		console.log('Cloning state',t);
+		// console.log('Cloning state',t);
 		this.state = [];
 		for(var i=0; i<t.state.length; i++) {
 			this.state[i] = clone(t.state[i]);
 		}
-		console.log('Done Cloning!');
+		// console.log('Done Cloning!');
 		this.updateTurtle();
 	}
 };

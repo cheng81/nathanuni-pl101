@@ -185,13 +185,12 @@ var unlock = function(id) {
 };
 
 var counter = 0;
-var MAX = 10;
+var MAX = 50;
 var next = function() {
 	if(ready.length===0) {
 		return false;
 	}
 	var s = ready[cur];
-	// console.log('next',cur);
 	step(s);
 	if(s.done===true) {
 		ready.splice(cur,1);
@@ -207,14 +206,15 @@ var next = function() {
 			return s.data;
 		}
 	} else {
-		counter = counter + 1;
+		counter++;
 		if(counter===MAX) {
+			// if(Math.random() > 0.95) {
+				cur = (cur+1) % ready.length;
+				// console.log('switch',cur);
+			// }
 			counter = 0;
-			cur = (cur+1) % ready.length;
 		}
-		//cur = (cur+1) % ready.length;
 	}
-	// console.log('nextCur',cur);
 	return next;
 };
 
@@ -532,16 +532,9 @@ var evalStatement = function(stmt, env, cont, xcont) {
 			return thunk(cont);
 		case 'with':
 			return thunk(evalExpr, stmt.expr, env, function(turtle) {
-				// if(env.bindings['_turtle_'] !== undefined) {
-					// return thunk(xcont,new Error('Cannot use with within with!'));
-				// }
-				console.log('with block',turtle);
 				var new_env = env;//{bindings:{}, outer:env};
-				// add_binding(new_env, '_turtle_', turtle);
 				for(var i in turtle) {
 					if(turtle[i] instanceof Function) {
-						console.log('bind function turtle.'+i);
-						//var bound = turtle[i].bind(turtle);
 						(function(name) {
 							var bound = function() {
 								// console.log('called',stmt.expr,name);
@@ -4641,12 +4634,12 @@ var Turtle = function(raphael, w, h, t) {
 	this.state = [];
 	this.clear();
 	if(t!==undefined) {
-		console.log('Cloning state',t);
+		// console.log('Cloning state',t);
 		this.state = [];
 		for(var i=0; i<t.state.length; i++) {
 			this.state[i] = clone(t.state[i]);
 		}
-		console.log('Done Cloning!');
+		// console.log('Done Cloning!');
 		this.updateTurtle();
 	}
 };

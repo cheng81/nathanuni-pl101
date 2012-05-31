@@ -62,13 +62,12 @@ var unlock = function(id) {
 };
 
 var counter = 0;
-var MAX = 10;
+var MAX = 50;
 var next = function() {
 	if(ready.length===0) {
 		return false;
 	}
 	var s = ready[cur];
-	// console.log('next',cur);
 	step(s);
 	if(s.done===true) {
 		ready.splice(cur,1);
@@ -84,14 +83,15 @@ var next = function() {
 			return s.data;
 		}
 	} else {
-		counter = counter + 1;
+		counter++;
 		if(counter===MAX) {
+			// if(Math.random() > 0.95) {
+				cur = (cur+1) % ready.length;
+				// console.log('switch',cur);
+			// }
 			counter = 0;
-			cur = (cur+1) % ready.length;
 		}
-		//cur = (cur+1) % ready.length;
 	}
-	// console.log('nextCur',cur);
 	return next;
 };
 
