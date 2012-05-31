@@ -100,6 +100,20 @@ $('a#clear').click(function(e) {
   return false;
 });
 
+var doc=false;
+$('a#toggleDoc').click(function(e) {
+  e.preventDefault();
+  if(doc===false) {
+    $('#doc').show();
+    $('a#toggleDoc').text('Hide Doc');
+  } else {
+    $('#doc').hide();
+    $('a#toggleDoc').text('Show Doc');
+  }
+  doc=!doc;
+  return false;
+});
+
 var btns = $('div#examples-btn');
 $('div#examples > div').each(function(idx,div) {
   var theid = div.id;
@@ -143,6 +157,86 @@ $('div#examples > div').each(function(idx,div) {
       </div>
     </div>
 	<div class="hero-unit">
+    <a id="toggleDoc" style="margin-bottom: 1em;" class="btn btn-primary btn-large">Show Doc</a>
+
+<div id="doc" style="display:none;">
+      <h2>Data Types</h2>
+      <p>Tortoise accepts numbers (positive and negative, integers and floats) and booleans.</p>
+      <h2>Language constructs</h2>
+      <dl>
+        <dt>Variables</dt>
+        <dd>
+          <ul class="unstyled">
+            <li><code>var name;</code>, declares a variable</li>
+            <li><code>name := expr</code>, assigns expr to variable name</li>
+            <li><code>var name := expr</code>, declares and assign expr to variable name</li>
+          </ul>
+        </dd>
+        <dt>Functions and threads</dt>
+        <dd>
+          <ul class="unstyled">
+            <li><code>define name( args ) { body }</code>, defines a variable</li>
+            <li><code>name(args);</code>, call the function. Functions can be curried, as in:
+              <pre>
+define foo (a,b) {
+  a + b;
+}
+var add5 := foo(5);
+add5(10);
+//result 15
+              </pre></li>
+            <li><code>spawn name( args );</code>, creates a new "thread" and start it</li>
+          </ul>
+        </dd>
+        <dt>Control Flow</dt>
+        <dd>
+          <ul class="unstyled">
+            <li><code>if ( test ) { body } else { body }</code>, optional else</li>
+            <li><code>repeat ( expr ) { body }</code></li>
+            <li><code>throw expr;</code>, throws an exception</li>
+            <li><code>yield;</code>, returns the control flow to some other ready thread</li>
+          </ul>
+        </dd>
+        <dt>Locks</dt>
+        <dd>
+          <code>lock ( name ) { body }</code>, 
+          tries to acquire the name lock. If the lock is already used, the thread is put to wait.
+          When (well, if) the body is (ever) executed, the lock is automatically released afterward.
+        </dd>
+        <dt>Exceptions</dt>
+        <dd>
+          <code>try { body } catch name { body }</code>, tries to execute the first body. If an exception occurs,
+          the catch body is executed. The exceptional value is assigned to the name variable
+        </dd>
+        <dt>Controlling the turtle(s)<dt>
+        <dd>
+          <ul class="unstyled">
+            <li><code>with ( expr ) { body }</code>,
+              the turtle resolved in the expression is used in the body.
+              The turtle bindings are treated as in dynamic scope, so you can call a drawing function
+              in the body without explicitly passing the turtle around</li>
+            <li><code>make()</code>, creates a fresh turtle</li>
+            <li><code>clone( expr )</code>, clone the turtle resolved in the expression</li>
+            <li><code>clear()</code>, reset the turtle</li>
+            <li><code>push()</code>, push a new state in the turtle (the top state is cloned)</li>
+            <li><code>pop()</code>, pop a state from the turtle</li>
+            <li><code>forward( num )</code></li>
+            <li><code>left( num )</code></li>
+            <li><code>right( num )</code></li>
+            <li><code>penUp()</code>, do not draw the following commands</li>
+            <li><code>penDown()</code>, draw the following commands</li>
+            <li><code>home()</code>, go back to the center of the canvas. Do not modifies the angle</li>
+            <li><code>opacity( num )</code>, sets the stroke opacity</li>
+            <li><code>colorRGB( num,num,num )</code>, sets the current color</li>
+            <li><code>stroke( num )</code>, sets the current stroke width</li>
+            <li><code>scale( num )</code>, scale the following commands (num is multiplied with current scale value)</li>
+            <li><code>strokeScale( num )</code>, scale the stroke width (num is multiplied with current stroke scale value)</li>
+
+          </ul>
+        </dd>
+      </dl>
+    </div>
+
 		<textarea id="source">/*tortoise code*/
 </textarea>
       <div class="btn-group">
@@ -153,6 +247,7 @@ $('div#examples > div').each(function(idx,div) {
       </div>
     <div class="clearfix">&nbsp;</div>
     <p id="desk">&nbsp;</p>
+    
 	</div>
 
 </div>
