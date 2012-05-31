@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../css/codemirror.css"/>
+<link rel="stylesheet" href="../css/monokai.css"/>
+<link rel="stylesheet" href="../css/bootstrap.min.css"/>
+<style type="text/css">
+body {margin-top: 70px;}
+#desk {border: solid 2px #CCC;}
+#examples {display: none;}
+</style>
+<script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+<script type="text/javascript" src="../js/codemirror.js"></script>
+<script type="text/javascript" src="../js/raphael-min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+var srcArea = $('textarea#source')[0];
+var myCodeMirror = CodeMirror.fromTextArea(srcArea,{
+	lineNumbers: true,
+	theme: 'monokai'
+});
+var toload = window.location.protocol==='file:' ?
+  "../../nathanuni-pl101/lesson8/dist/tortoise.js" :
+  "https://raw.github.com/cheng81/nathanuni-pl101/master/lesson8/dist/tortoise.js";
+var head = document.getElementsByTagName('head')[0];
+var script = document.createElement('script');
+script.type = "text/javascript";
+
+var require = null;
+var tortoise = null;
+var raphael = null;
+console.log('toload',toload);
+script.onload = function() {
+  console.log('tortoise loaded');
+  require = window.node2browser.require;
+  tortoise = require('tortoise'); 
+  var desk = $('#desk');
+  var w = $(desk).width();
+  console.log('width',$(desk).width());
+  // turtle = new tortoise.turtlelib.Turtle(desk[0],w,w);
+  raphael = Raphael(desk[0],w,w);
+  console.log('raphael',raphael);
+  tortoise.bootstrap(raphael,w,w);
+}
+script.src = toload;
+head.appendChild(script);
+
+var booted = false;
+var intv;
+$('a#make').click(function(e) {
+  e.preventDefault();
+
+  if(booted === false) {
+    var text = myCodeMirror.getValue();
+    console.log('eval',text);
+    tortoise.step(text);
+    booted = true;
+  } 
+  intv = window.setInterval(
+    function() {
+      var res = tortoise.step();
+      if(res !== undefined) {
+        window.clearInterval(intv);
+        console.log(res);
+      }
+    }
+    ,1);
+
+  return false;
+});
+
+$('a#step').click(function(e) {
+  e.preventDefault();
+  if(booted === false) {
+    var text = myCodeMirror.getValue();
+    console.log('eval',text);
+    tortoise.step(text);
+    booted = true;
+  } else {
+    var res = tortoise.step();
+    if(res!==undefined) {
+      console.log(res);
+      booted = false;
+    }
+  }
+});
+
+$('a#pause').click(function(e) {
+  e.preventDefault();
+  console.log('pause');
+  window.clearInterval(intv);
+  return false;
+})
+$('a#clear').click(function(e) {
+  e.preventDefault();
+  console.log('clearing');
+  raphael.clear();
+  booted=false;
+  return false;
+});
+
+var btns = $('div#examples-btn');
+$('div#examples > div').each(function(idx,div) {
+  var theid = div.id;
+  $(btns).append('<a class="btn btn-info btn-small" id="load-'+theid+'">'+theid+'</a>');
+//  $(btns).append('<input type="button" id="load-'+theid+'" value="'+theid+'"/>');
+  $('a#load-'+theid).click(function(e) {
+    e.preventDefault();
+    myCodeMirror.setValue($(div).text());
+    return false;
+  });
+});
+
+});
+
+</script>
+</head>
+<body>
+<div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="http://cheng81.github.com/nathanuni-pl101/tortoiseCPS/index.html">Tortoise</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <!--<li class="active"><a href="">Interpreter</a></li>-->
+              <li><a href="http://www.nathansuniversity.com">Nathan's University</a></li>
+              <li><a href="http://www.github.com/cheng81/nathanuni-pl101/">GitHub</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+	<div class="page-header"><h1>Tortoise interpreter</h1> by fzan
+      <div class="btn-group" id="examples-btn" style="margin-top: 1em">
+      </div>
+    </div>
+	<div class="hero-unit">
+		<textarea id="source">/*tortoise code*/
+</textarea>
+      <div class="btn-group">
+        <a id="make" class="btn btn-primary btn-large">Play <i class="icon-play icon-white"></i></a>
+        <a id="pause" class="btn btn-primary btn-large">Pause <i class="icon-pause icon-white"></i></a>
+        <a id="step" class="btn btn-primary btn-large">Step</a>
+        <a id="clear" class="btn btn-primary btn-large">Clear</a>
+      </div>
+    <div class="clearfix">&nbsp;</div>
+    <p id="desk">&nbsp;</p>
+	</div>
+
+</div>
+
+<div id="examples">
+  <div id="Fractal-tree">// Fractal-tree, McLeopold sample
+// http://nathansuniversity.com/vanilla/discussion/comment/1495#Comment_1495
+define curve(size, angle, scale, count) {
+ if (count > 0) {
+  stroke((size * scale) / 10);
+  forward(size);
+  left(angle);
+  curve(size * scale, angle, scale, count - 1);
+ 
+  right(90);
+  curve(size * scale * scale, angle, scale, count - 1);
+  left(90);
+ 
+  right(angle);
+  right(180);
+  forward(size);
+  left(180);
+ 
+ }
+}
+
+define tree(angle) {
+  with(make()) {
+    right(angle);
+    curve(100, 29, 0.80, 8);  
+  }   
+}
+
+spawn tree(0);
+spawn tree(90);
+spawn tree(180);
+spawn tree(270);</div>
+  <div id="Sierpinski-triangle">// Sierpinski triangle (http://en.wikipedia.org/wiki/Sierpinski_triangle)
+// Adapted from http://oather.github.com/nu/pl101/l06-1/index.html
+
+define unitTri() {
+  forward(1);
+  left(120);
+  forward(1);
+  left(120);
+  forward(1);
+}
+
+define move(x,y) {
+  penUp();
+  right(90);
+  forward(x);
+  left(90);
+  forward(y);
+  penDown();
+}
+define tri(n) {
+  push();
+  n := n - 1;
+  if (n == 0) { unitTri(); }
+  if (n > 0) {
+    scale(1/2);
+    tri(n);
+    move(0, 1);
+    tri(n);
+    left(120);
+    move(0, 1);
+    right(120);
+    tri(n);
+  }
+  pop();
+}
+
+define iteration(num) {
+  push();
+  right(90);
+    stroke((numIter+1)-num);
+  scale(500);
+  move(0.5, -0.5);
+  tri(num);
+    pop();
+    home();
+    if(num > 1) {
+      iteration(num-1);
+    }
+}
+
+var numIter := 5;
+with(make()) {
+  iteration(numIter);  
+}
+</div>
+</div>
+
+</body>
+</html>
