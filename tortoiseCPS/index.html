@@ -54,12 +54,13 @@ $('a#make').click(function(e) {
   if(booted === false) {
     var text = myCodeMirror.getValue();
     console.log('eval',text);
-    tortoise.step(text);
+    tortoise.start(text);
     booted = true;
-  } 
+  }
+  var res;
   intv = window.setInterval(
     function() {
-      var res = tortoise.step();
+      res = tortoise.step();
       if(res !== undefined) {
         window.clearInterval(intv);
         console.log(res);
@@ -75,7 +76,7 @@ $('a#step').click(function(e) {
   if(booted === false) {
     var text = myCodeMirror.getValue();
     console.log('eval',text);
-    tortoise.step(text);
+    tortoise.start(text);
     booted = true;
   } else {
     var res = tortoise.step();
