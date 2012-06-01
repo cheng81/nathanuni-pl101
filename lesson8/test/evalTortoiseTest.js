@@ -177,6 +177,7 @@ suite('threading', function() {
 			}\
 			spawn consumer();\
 			spawn producer();\
+			yield;\
 			lock(consumer) {\
 				lock(producer) {\
 					log(-3);\

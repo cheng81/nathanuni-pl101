@@ -12,39 +12,38 @@ var bootstrap = function(raphael,w,h) {
 	env.bindings.log.tortoiseArity = 1;
 	return env;
 };
-var make = function(text,cont,xcont) {
+var eval = function(text,cont,xcont) {
 	cont = cont || tortoise.thunkValue;
 	xcont = xcont || tortoise.thunkValue;
 	var ast = parser.parse(text);
 	var next = tortoise.boot(ast,cont,xcont,env);
-	do {
-		next = next();
-	} while(next instanceof Function);
-	return next;
+	var res;
+	while( (res=next()) ) {}
+	return res;
+	// do {
+	// 	next = next();
+	// } while(next instanceof Function);
+	// return next;
 };
 
-var _next = undefined;
-var step = function(text,cont,xcont) {
+var next;
+var start = function(text,cont,xcont) {
 	cont = cont || tortoise.thunkValue;
 	xcont = xcont || tortoise.thunkValue;
-	if(text !== undefined && _next === undefined) {
-		var ast = parser.parse(text);
-		_next = tortoise.boot(ast,cont,xcont,env);
-		_next = _next();
-	} else if(_next instanceof Function) {
-		_next = _next();
-		if(!(_next instanceof Function)) {
-			var out = _next;
-			_next = undefined;
-			return out;
-		}
-	}
+	var ast = parser.parse(text);
+	next = tortoise.boot(ast,cont,xcont,env);
 };
+var step = function() {
+	return next();
+};
+
 module.exports = {
 	parser: parser,
 	tortoise: tortoise,
 	bootstrap: bootstrap,
-	make: make,
+	// make: make,
+	evalAll: eval,
+	start: start,
 	step: step,
 	turtlelib: require('./turtle'),
 	eval: function(src,log) {
@@ -52,15 +51,16 @@ module.exports = {
 		var ast = parser.parse(src);
 		if(log) {console.log(util.inspect(ast,false,100));}
 		var l = function(val) {
-			console.log(val);
+			console.log('# PROGRAM OUTPUT #',val);
 		};
 		l.tortoiseArity = 1;
 		var next = tortoise.boot(ast,tortoise.thunkValue,tortoise.thunkValue,{bindings:{
 			log: l
 		},outer:{}});
+		var res;
 		do {
-			next = next();
-		} while(next instanceof Function);
-		return next;
+			res = next();
+		} while(res===undefined);
+		return res;
 	}
 };

@@ -141,18 +141,21 @@ var ready = [];
 var wait = [];
 var cur = 0;
 var locks = {};
+var counter = 0;
+var MAX = 50;
 
 var reset = function() {
 	ready = [];
 	wait = [];
 	cur = 0;
+	counter = 0;
 	locks = {};
 };
 var make = function(thread) {
 	ready.push({data:thread,done:false});
 };
 var waitOn = function(onLock) {
-	console.log('waitOn',onLock,cur,wait[onLock]);
+	// console.log('waitOn',onLock,cur,wait[onLock]);
 	var waiting = ready.splice(cur,1);
 	cur = cur % ready.length;
 	if(onLock in wait) {
@@ -160,14 +163,15 @@ var waitOn = function(onLock) {
 	} else {
 		wait[onLock] = waiting;
 	}
-	console.log('waitOn',onLock,cur,wait[onLock]);
+	// console.log('waitOn',onLock,cur,wait[onLock]);
 };
 var yield = function() {
+	// console.log('yield ',cur,' to ',((cur+1)% ready.length));
 	cur = (cur+1) % ready.length;
 	counter = 0;
 };
 var lock = function(id) {
-	console.log('locking',cur,id,locks[id]);
+	// console.log('locking',cur,id,locks[id]);
 	if(id in locks) {
 		waitOn(id);
 		return false;
@@ -176,7 +180,7 @@ var lock = function(id) {
 	return true;
 };
 var unlock = function(id) {
-	console.log('unlocking',id,locks[id],wait[id]);
+	// console.log('unlocking',id,locks[id],wait[id]);
 	delete(locks[id]);
 	if(id in wait) {
 		ready.push(wait[id].shift());
@@ -184,38 +188,27 @@ var unlock = function(id) {
 	}
 };
 
-var counter = 0;
-var MAX = 50;
 var next = function() {
-	if(ready.length===0) {
-		return false;
-	}
+	if(ready.length===0) {return false;}
 	var s = ready[cur];
-	step(s);
+	while(s.done===false&&counter<MAX) {
+		s = ready[cur]; //might yield!
+		step(s);
+		counter++;
+	};
+	counter = 0;
 	if(s.done===true) {
 		ready.splice(cur,1);
 		cur = cur % ready.length;
 		if(ready.length===0) {
-			if(wait.length!==0) {
-				throw new Error('DeadLock!');
-			}
+			if(wait.length!==0) {throw new Error('DeadLock!');}
 			console.log('program ended',s);
-			if (s.data instanceof Error) {
-				throw s.data;
-			}
+			if(s.data instanceof Error) {throw s.data;}
 			return s.data;
 		}
 	} else {
-		counter++;
-		if(counter===MAX) {
-			// if(Math.random() > 0.95) {
-				cur = (cur+1) % ready.length;
-				// console.log('switch',cur);
-			// }
-			counter = 0;
-		}
+		cur = (cur+1) % ready.length;
 	}
-	return next;
 };
 
 module.exports = {
@@ -4865,39 +4858,38 @@ var bootstrap = function(raphael,w,h) {
 	env.bindings.log.tortoiseArity = 1;
 	return env;
 };
-var make = function(text,cont,xcont) {
+var eval = function(text,cont,xcont) {
 	cont = cont || tortoise.thunkValue;
 	xcont = xcont || tortoise.thunkValue;
 	var ast = parser.parse(text);
 	var next = tortoise.boot(ast,cont,xcont,env);
-	do {
-		next = next();
-	} while(next instanceof Function);
-	return next;
+	var res;
+	while( (res=next()) ) {}
+	return res;
+	// do {
+	// 	next = next();
+	// } while(next instanceof Function);
+	// return next;
 };
 
-var _next = undefined;
-var step = function(text,cont,xcont) {
+var next;
+var start = function(text,cont,xcont) {
 	cont = cont || tortoise.thunkValue;
 	xcont = xcont || tortoise.thunkValue;
-	if(text !== undefined && _next === undefined) {
-		var ast = parser.parse(text);
-		_next = tortoise.boot(ast,cont,xcont,env);
-		_next = _next();
-	} else if(_next instanceof Function) {
-		_next = _next();
-		if(!(_next instanceof Function)) {
-			var out = _next;
-			_next = undefined;
-			return out;
-		}
-	}
+	var ast = parser.parse(text);
+	next = tortoise.boot(ast,cont,xcont,env);
 };
+var step = function() {
+	return next();
+};
+
 module.exports = {
 	parser: parser,
 	tortoise: tortoise,
 	bootstrap: bootstrap,
-	make: make,
+	// make: make,
+	evalAll: eval,
+	start: start,
 	step: step,
 	turtlelib: require('./turtle'),
 	eval: function(src,log) {
@@ -4905,16 +4897,17 @@ module.exports = {
 		var ast = parser.parse(src);
 		if(log) {console.log(util.inspect(ast,false,100));}
 		var l = function(val) {
-			console.log(val);
+			console.log('# PROGRAM OUTPUT #',val);
 		};
 		l.tortoiseArity = 1;
 		var next = tortoise.boot(ast,tortoise.thunkValue,tortoise.thunkValue,{bindings:{
 			log: l
 		},outer:{}});
+		var res;
 		do {
-			next = next();
-		} while(next instanceof Function);
-		return next;
+			res = next();
+		} while(res===undefined);
+		return res;
 	}
 };
 /*---------------------------------------------------*/
