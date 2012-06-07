@@ -153,7 +153,7 @@ var evalExpr = function(expr, env, cont, xcont) {
 							t = {tag:thunk, func:func, args: args};
 						} else {
 							var newEnv = applyArgs(func.args,args,func.env,env);
-							t = thunk(evalStatements,func.body,newEnv,thunkValue,xcont);
+							t = thunk(evalStatements,func.body,newEnv,thunkValue,thunkValue);
 						}
 						sched.make(t);
 						return thunk(cont);
