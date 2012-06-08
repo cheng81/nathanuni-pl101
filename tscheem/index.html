@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../css/codemirror.css"/>
+<link rel="stylesheet" href="../css/monokai.css"/>
+<link rel="stylesheet" href="../css/bootstrap.min.css"/>
+<style type="text/css">
+body {margin-top: 70px;}
+#desk {border: solid 2px #CCC;}
+#examples {display: none;}
+</style>
+<script type="text/javascript" src="../js/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="../js/bootstrap.min.js"></script>
+<script type="text/javascript" src="../js/codemirror.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+var srcArea = $('textarea#source')[0];
+var myCodeMirror = CodeMirror.fromTextArea(srcArea,{
+	lineNumbers: true,
+	theme: 'monokai'
+});
+var toload = window.location.protocol==='file:' ?
+  "../../nathanuni-pl101/lesson9/dist/scheem.js" :
+  "https://raw.github.com/cheng81/nathanuni-pl101/master/lesson9/dist/scheem.js";
+var head = document.getElementsByTagName('head')[0];
+var script = document.createElement('script');
+script.type = "text/javascript";
+
+var require = null;
+var scheem = null;
+console.log('toload',toload);
+script.onload = function() {
+  console.log('tscheem loaded');
+  require = window.node2browser.require;
+  scheem = require('scheem'); 
+}
+script.src = toload;
+head.appendChild(script);
+
+$('a#make').click(function(e) {
+  e.preventDefault();
+  var text = myCodeMirror.getValue();
+  var srcText = "(begin\n" + text + "\n)";
+  console.log('eval',srcText);
+  var res = scheem.make(srcText);
+  // $('#ast').text(JSON.stringify(res.ast));
+  // $('#type').text(JSON.stringify(res.type));
+  $('#res').text(JSON.stringify(res.res));
+  console.log(res);
+  return false;
+});
+
+$('a#clear').click(function(e) {
+  e.preventDefault();
+  console.log('clearing');
+  myCodeMirror.setValue('');
+  // $('#ast').text('');
+  // $('#type').text('');
+  $('#res').text('');
+  return false;
+});
+
+var btns = $('div#examples-btn');
+$('div#examples > pre').each(function(idx,div) {
+  var theid = div.id;
+  $(btns).append('<a class="btn btn-info btn-small" id="load-'+theid+'">'+theid+'</a>');
+  $('a#load-'+theid).click(function(e) {
+    e.preventDefault();
+    myCodeMirror.setValue($(div).text());
+    return false;
+  });
+});
+
+});
+
+</script>
+</head>
+<body>
+<div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brand" href="http://cheng81.github.com/nathanuni-pl101/tscheem/index.html">TScheem</a>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <!--<li class="active"><a href="">Interpreter</a></li>-->
+              <li><a href="http://www.nathansuniversity.com">Nathan's University</a></li>
+              <li><a href="http://www.github.com/cheng81/nathanuni-pl101/">GitHub</a></li>
+            </ul>
+          </div><!--/.nav-collapse -->
+        </div>
+      </div>
+    </div>
+
+<div class="container">
+	<div class="page-header"><h1>TypedScheem interpreter</h1> by fzan
+      <div class="btn-group" id="examples-btn" style="margin-top: 1em">
+      </div>
+    </div>
+	<div class="hero-unit">
+		<textarea id="source">;;tscheem code
+</textarea>
+      <div class="btn-group">
+        <a id="make" class="btn btn-primary btn-large">Interpret <i class="icon-play icon-white"></i></a>
+        <a id="clear" class="btn btn-primary btn-large">Clear</a>
+      </div>
+    <div class="clearfix">&nbsp;</div>
+	</div>
+  <div id="output" class="row">
+    <h2>Result</h2>
+      <div id="res"></div>
+  </div>
+
+</div>
+
+<div id="examples">
+  <pre id="Fold">
+;; Fold
+(define empty?
+  {(elt)
+  (lambda-one lst [:elt]
+    ( (=<[:elt]> empty<:elt>) lst ))})
+(define fold
+  {(elt acct)
+  ((:acct -> (:elt -> :acct)) -> (:acct -> ([:elt] -> :acct )))
+  (lambda-one fun (:acct -> (:elt->:acct))
+    (lambda-one accum :acct
+      (lambda-one lst [:elt]
+        (if (empty?<:elt> lst)
+          accum
+          (((fold<:elt :acct> fun) ((fun accum) (car<:elt> lst)) ) (cdr<:elt> lst)) ))))})
+(define sum
+  (lambda-one lst [num]
+    (((fold&lt;num num&gt; +) 0) lst) ))
+(sum '(1 2 3 4))
+</pre>
+</div>
+
+</body>
+</html>
