@@ -1,0 +1,1 @@
+window.node2browser.cache['chai'] = window.chai;
