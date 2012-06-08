@@ -60,6 +60,20 @@ $('a#clear').click(function(e) {
   return false;
 });
 
+var doc=false;
+$('a#toggleDoc').click(function(e) {
+  e.preventDefault();
+  if(doc===false) {
+    $('#doc').show();
+    $('a#toggleDoc').text('Hide Doc');
+  } else {
+    $('#doc').hide();
+    $('a#toggleDoc').text('Show Doc');
+  }
+  doc=!doc;
+  return false;
+});
+
 var btns = $('div#examples-btn');
 $('div#examples > pre').each(function(idx,div) {
   var theid = div.id;
@@ -72,7 +86,6 @@ $('div#examples > pre').each(function(idx,div) {
 });
 
 });
-
 </script>
 </head>
 <body>
@@ -102,6 +115,24 @@ $('div#examples > pre').each(function(idx,div) {
       </div>
     </div>
 	<div class="hero-unit">
+    <a id="toggleDoc" style="margin-bottom: 1em;" class="btn btn-primary btn-large">Show Doc</a>
+    <div id="doc"style="display:none;">
+      <h2>TypedScheem types</h2>
+      <ul class="unstyled">
+        <li>num, bool, unit and sym (quoted strings) are the base types</li>
+        <li>arrows: ( type -> type )</li>
+        <li>lists: [type]</li>
+        <li>Type abstraction, to create a piece of code parametrized with some type
+          <pre>
+{ (a b) 
+  (lambda-one mapper (:a -> :b)
+    (lambda-one elm :a
+      (mapper elm))) }</pre></li>
+        <li>Type application, to concretize a type
+          <pre>
+(car&lt;num&gt; '(1 2 4 3))</pre></li>
+      </ul>
+    </div>
 		<textarea id="source">;;tscheem code
 </textarea>
       <div class="btn-group">
