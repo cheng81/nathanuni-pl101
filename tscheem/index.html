@@ -42,11 +42,16 @@ $('a#make').click(function(e) {
   var text = myCodeMirror.getValue();
   var srcText = "(begin\n" + text + "\n)";
   console.log('eval',srcText);
-  var res = scheem.make(srcText);
-  // $('#ast').text(JSON.stringify(res.ast));
-  // $('#type').text(JSON.stringify(res.type));
-  $('#res').text(JSON.stringify(res.res));
-  console.log(res);
+  try {
+    var res = scheem.make(srcText);
+    // $('#ast').text(JSON.stringify(res.ast));
+    // $('#type').text(JSON.stringify(res.type));
+    $('#res').text(JSON.stringify(res.res));
+    console.log(res);
+  } catch(e) {
+    $('#res').text('ERROR: ' + e);
+    console.log(e);
+  }
   return false;
 });
 
