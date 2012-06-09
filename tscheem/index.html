@@ -132,7 +132,17 @@ $('div#examples > pre').each(function(idx,div) {
 { (a b) 
   (lambda-one mapper (:a -> :b)
     (lambda-one elm :a
-      (mapper elm))) }</pre></li>
+      (mapper elm))) }</pre>
+        It is also possible to express recursive functions
+        <pre>
+(define length 
+  { (a)
+  ([:a] -> num)
+  (lambda-one lst [:a]
+    (if ((=<[:a]> empty<:a>) lst)
+    0
+    ((+ 1) (length<:a> (cdr<:a> lst))))) })</pre>
+        </li>
         <li>Type application, to concretize a type
           <pre>
 (car&lt;num&gt; '(1 2 4 3))</pre></li>
@@ -154,6 +164,14 @@ $('div#examples > pre').each(function(idx,div) {
 </div>
 
 <div id="examples">
+  <pre id="Length">(define length 
+  { (a)
+  ([:a] -> num)
+  (lambda-one lst [:a]
+    (if ((=<[:a]> empty<:a>) lst)
+    0
+    ((+ 1) (length<:a> (cdr<:a> lst))))) })
+(length&lt;num&gt; '(1 2 3 4))</pre>
   <pre id="Fold">
 ;; Fold
 (define empty?
