@@ -190,8 +190,28 @@ $('div#examples > pre').each(function(idx,div) {
 (define sum
   (lambda-one lst [num]
     (((fold&lt;num num&gt; +) 0) lst) ))
-(sum '(1 2 3 4))
-</pre>
+(sum '(1 2 3 4))</pre>
+  <pre id="Map">;; Map
+(define empty?
+  {(elt)
+  (lambda-one lst [:elt]
+    ( (=<[:elt]> empty<:elt>) lst ))})
+(define map
+  {(a b)
+    ( (:a -> :b) -> ([:a] -> [:b]) )
+    (lambda-one mapper (:a -> :b)
+      (lambda-one lst [:a]
+          (if (empty?<:a> lst)
+              empty<:b>
+                ((cons<:b> 
+                  (mapper (car<:a> lst)))
+                    ((map<:a :b> mapper) (cdr<:a> lst) )) )))})
+
+(define istrue (=&lt;bool&gt; #t))
+(define bton
+  (lambda-one el bool
+      (if (istrue el) 1 0)))
+((map&lt;bool num&gt; bton) '(#t #f #t #t))</pre>
 </div>
 
 </body>
