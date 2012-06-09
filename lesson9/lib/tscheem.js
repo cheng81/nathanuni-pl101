@@ -357,6 +357,10 @@ var stdlib = function() {
 		return x.slice(1);
 	})
 	.add('empty',typeAbs('elt', list(tIdent('elt'))), [])
+	.add('alert',typeAbs('a',arrow(tIdent('a'),unitType)),
+		function(x) {
+			console.log(x);
+		})
 	;
     return {env:bld.env(),types:bld.types()};
 };
